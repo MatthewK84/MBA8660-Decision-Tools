@@ -1,0 +1,34 @@
+{
+  "name": "mba8660-decision-tools",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "start": "node server/index.js",
+    "lint": "eslint .",
+    "test": "node --test test/*.test.js",
+    "seed": "node server/seed.js",
+    "test:db": "node --test test/integration.test.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "pdfmake": "^0.2.14",
+    "pg": "^8.23.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "globals": "^15.14.0",
+    "vite": "^6.0.0"
+  }
+}

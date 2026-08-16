@@ -1,0 +1,13 @@
+[
+  { "week": 1, "title": "Big Data is Dead", "url": "https://motherduck.com/blog/big-data-is-dead/", "sourceClass": "Practitioner essay", "isFoundational": true },
+  { "week": 2, "title": "Lakehouse: A New Generation of Open Platforms (CIDR 2021)", "url": "https://www.cidrdb.org/cidr2021/papers/cidr2021_paper17.pdf", "sourceClass": "Conference paper", "isFoundational": true },
+  { "week": 2, "title": "Apache Iceberg Table Specification", "url": "https://iceberg.apache.org/spec/", "sourceClass": "Specification", "isFoundational": false },
+  { "week": 3, "title": "Apache Polaris Documentation", "url": "https://polaris.apache.org/", "sourceClass": "Specification", "isFoundational": false },
+  { "week": 5, "title": "FinOps Framework", "url": "https://www.finops.org/framework/", "sourceClass": "Reference architecture", "isFoundational": false },
+  { "week": 6, "title": "Open Data Contract Standard", "url": "https://bitol-io.github.io/open-data-contract-standard/", "sourceClass": "Specification", "isFoundational": false },
+  { "week": 10, "title": "Regulation (EU) 2024/1689 (EU AI Act)", "url": "https://eur-lex.europa.eu/eli/reg/2024/1689/oj", "sourceClass": "Statutory text", "isFoundational": false },
+  { "week": 11, "title": "NIST AI Risk Management Framework 1.0", "url": "https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf", "sourceClass": "Framework", "isFoundational": false },
+  { "week": 11, "title": "NIST Generative AI Profile (AI 600-1)", "url": "https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf", "sourceClass": "Framework", "isFoundational": false },
+  { "week": 12, "title": "Model Context Protocol Specification", "url": "https://modelcontextprotocol.io/specification", "sourceClass": "Specification", "isFoundational": false },
+  { "week": 12, "title": "OWASP Top 10 for LLM Applications", "url": "https://owasp.org/www-project-top-10-for-large-language-model-applications/", "sourceClass": "Framework", "isFoundational": false }
+]

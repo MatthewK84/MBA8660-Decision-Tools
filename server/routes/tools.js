@@ -1,0 +1,129 @@
+/**
+ * Tool routes. Stateless by design: the request carries every input, the
+ * response carries every result, and nothing is written to disk or database.
+ */
+
+import { Router } from "express";
+import { buildAssumptionLog } from "../assumption-log.js";
+import { recordUsage } from "../repository/reference.js";
+import { renderAssumptionLogPdf } from "../pdf.js";
+import { InputError } from "../tools/kit.js";
+import { catalogSummary, findTool } from "../tools/catalog.js";
+
+/**
+ * Extract a plain object body, rejecting anything else.
+ *
+ * @param {unknown} body
+ * @returns {Record<string, unknown>}
+ */
+function readBody(body) {
+  if (body === null || typeof body !== "object" || Array.isArray(body)) {
+    throw new InputError("Request body must be a JSON object.");
+  }
+  return /** @type {Record<string, unknown>} */ (body);
+}
+
+/**
+ * Map a thrown value to an HTTP status and message.
+ *
+ * @param {unknown} error
+ * @returns {{ status: number, message: string }}
+ */
+function toHttpError(error) {
+  if (error instanceof InputError) {
+    return { status: 400, message: error.message };
+  }
+  const message = error instanceof Error ? error.message : "Unexpected server error.";
+  return { status: 500, message };
+}
+
+/**
+ * Compute, validate the student's written answers, and stream a PDF.
+ *
+ * @param {import("express").Request} req
+ * @param {import("express").Response} res
+ * @param {import("../config.js").Config} config
+ * @param {import("pg").Pool | null} pool
+ * @returns {Promise<void>}
+ */
+async function exportPdf(req, res, config, pool) {
+  try {
+    const tool = findTool(req.params.slug);
+    if (tool === undefined) {
+      res.status(404).json({ error: "No such tool." });
+      return;
+    }
+    const body = readBody(req.body);
+    const now = new Date();
+    const result = tool.run(body, now);
+    const meta = { courseCode: config.courseCode, week: tool.week, toolTitle: tool.title, decision: tool.decision };
+    const log = buildAssumptionLog(meta, result, body.answers, now);
+    const pdf = await renderAssumptionLogPdf(log);
+    countUsage(pool, tool.slug, "export");
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="week-${tool.week}-assumption-log.pdf"`);
+    res.send(pdf);
+  } catch (error) {
+    const { status, message } = toHttpError(error);
+    res.status(status).json({ error: message });
+  }
+}
+
+/**
+ * Increment a usage counter, ignoring failures.
+ *
+ * Telemetry must never break a student mid-memo, and it must never see the
+ * request body. Only the tool slug and the date cross this boundary.
+ *
+ * @param {import("pg").Pool | null} pool
+ * @param {string} toolSlug
+ * @param {"run" | "export"} kind
+ * @returns {void}
+ */
+function countUsage(pool, toolSlug, kind) {
+  if (pool === null) {
+    return;
+  }
+  recordUsage(pool, toolSlug, kind, new Date()).catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`Usage counter failed for ${toolSlug}: ${message}`);
+  });
+}
+
+/**
+ * Build the tools router.
+ *
+ * @param {import("../config.js").Config} config
+ * @param {import("pg").Pool | null} pool
+ * @returns {import("express").Router}
+ */
+export function buildToolsRouter(config, pool) {
+  const router = Router();
+
+  router.get("/tools", (_req, res) => {
+    res.json({ courseCode: config.courseCode, tools: catalogSummary() });
+  });
+
+  router.post("/tools/:slug/run", (req, res) => {
+    try {
+      const tool = findTool(req.params.slug);
+      if (tool === undefined) {
+        res.status(404).json({ error: "No such tool." });
+        return;
+      }
+      const body = readBody(req.body);
+      const result = tool.run(body, new Date());
+      countUsage(pool, tool.slug, "run");
+      res.json({ slug: tool.slug, week: tool.week, title: tool.title, result });
+    } catch (error) {
+      const { status, message } = toHttpError(error);
+      res.status(status).json({ error: message });
+    }
+  });
+
+  router.post("/tools/:slug/export.pdf", (req, res) => {
+    void exportPdf(req, res, config, pool);
+  });
+
+  return router;
+}

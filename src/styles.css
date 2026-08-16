@@ -1,0 +1,71 @@
+:root {
+  --ink: #16181d;
+  --muted: #5d636e;
+  --line: #d8dbe0;
+  --accent: #522d80;
+  --warn: #8a5300;
+  --bad: #a3232b;
+  --panel: #ffffff;
+  --bg: #f5f6f8;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+header h1 { font-size: 24px; margin: 0 0 6px; color: var(--accent); }
+header p { color: var(--muted); margin: 0 0 14px; }
+.decision {
+  border-left: 3px solid var(--accent);
+  padding: 8px 12px;
+  background: var(--panel);
+  color: var(--ink);
+  font-weight: 600;
+}
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+}
+.panel h2 { margin: 0 0 8px; font-size: 17px; color: var(--accent); }
+.panel h3 { margin: 14px 0 6px; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.note { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.field-label { font-size: 13px; font-weight: 600; }
+.field-unit { color: var(--muted); font-weight: 400; font-style: normal; margin-left: 6px; font-size: 12px; }
+.field-help { color: var(--muted); font-size: 12px; }
+input, select, textarea {
+  font: inherit;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #fff;
+  width: 100%;
+}
+textarea { resize: vertical; }
+button.primary {
+  margin-top: 12px;
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 5px;
+  padding: 10px 16px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+button.primary:disabled { background: #b6b9c0; cursor: not-allowed; }
+dl { margin: 0; }
+.line { display: grid; grid-template-columns: minmax(160px, 38%) 1fr; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.line dt { font-weight: 600; font-size: 13px; }
+.line dd { margin: 0; font-size: 13px; }
+.warnings { margin-top: 14px; color: var(--warn); }
+.warnings ul { margin: 0; padding-left: 18px; font-size: 13px; }
+.unresolved { border-color: var(--accent); border-width: 2px; }
+.error { background: #fdecec; color: var(--bad); border: 1px solid #f0c2c2; border-radius: 6px; padding: 10px 12px; font-size: 14px; }

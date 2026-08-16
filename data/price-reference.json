@@ -1,0 +1,11 @@
+[
+  {
+    "vendor": "REPLACE_ME",
+    "product": "Warehouse compute credit",
+    "unitLabel": "per credit",
+    "unitPriceUsd": 0,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "",
+    "note": "Placeholder. Seed real published prices before Week 4. Students are required to enter and date their own prices regardless; this table is a reference snapshot only."
+  }
+]

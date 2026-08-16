@@ -1,0 +1,50 @@
+[
+  {
+    "code": "MERIDIAN",
+    "name": "Meridian Health Partners",
+    "sector": "Regional healthcare network",
+    "annualBudgetCeilingUsd": 1450000,
+    "narrative": "Eleven hospitals and ninety clinics across four states. Claims, EHR extracts, and device telemetry. Two of the four states have conflicting privacy statutes. A clinical decision support pilot puts an Annex III question on the table.",
+    "workloadProfile": {
+      "largestTableRows": 4200000000,
+      "bytesPerRow": 310,
+      "typicalScanFraction": 0.08,
+      "annualGrowthPct": 22,
+      "peakConcurrentQueries": 14,
+      "statesInScope": 4,
+      "containsPersonalData": true
+    }
+  },
+  {
+    "code": "ATLAS",
+    "name": "Atlas Freight Systems",
+    "sector": "Intermodal logistics",
+    "annualBudgetCeilingUsd": 780000,
+    "narrative": "Telematics from twelve thousand tractors, plus EDI from three hundred shippers. European subsidiary puts the AI Act in scope. Route optimization models retrain nightly and an agent drafts customer status updates.",
+    "workloadProfile": {
+      "largestTableRows": 9800000000,
+      "bytesPerRow": 96,
+      "typicalScanFraction": 0.03,
+      "annualGrowthPct": 41,
+      "peakConcurrentQueries": 9,
+      "statesInScope": 19,
+      "containsPersonalData": true
+    }
+  },
+  {
+    "code": "CALDERA",
+    "name": "Caldera Outdoor Brands",
+    "sector": "Direct to consumer retail",
+    "annualBudgetCeilingUsd": 420000,
+    "narrative": "Four brands, one commerce platform, heavy seasonality. The data team is three people. A retrieval assistant answers customer service questions from order history and product manuals.",
+    "workloadProfile": {
+      "largestTableRows": 640000000,
+      "bytesPerRow": 220,
+      "typicalScanFraction": 0.15,
+      "annualGrowthPct": 18,
+      "peakConcurrentQueries": 6,
+      "statesInScope": 12,
+      "containsPersonalData": true
+    }
+  }
+]
