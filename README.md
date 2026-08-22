@@ -367,7 +367,7 @@ src/
 test/
   tools.test.js            53 tests, no database required
   privacy.test.js          11 tests, pure guard and migration checks
-  integration.test.js       9 tests, requires TEST_DATABASE_URL
+  integration.test.js      11 tests, requires TEST_DATABASE_URL
 ```
 
 ## Database schema
@@ -492,12 +492,54 @@ npm run seed
 The sync test fails if the module and the JSON disagree, so the two cannot
 drift apart silently.
 
+Seeding is idempotent. Scenarios and sources upsert on their natural keys, and
+prices are guarded on `(vendor, product, retrieved_at)`, so re-running the
+seeder adds only genuinely new rows:
+
+```
+Seeded 3 scenarios, 0 new prices, 22 already current, 11 sources.
+```
+
+A price re-retrieved on a **later date** is inserted as a new row on purpose.
+`price_reference` is a dated snapshot table, and the history of what a price
+was on a given day is exactly the evidence the syllabus asks students to keep.
+
+### Removing duplicate price rows
+
+Deployments seeded more than once **before this guard existed** hold a
+duplicate set of price rows. `GET /api/prices` will show each product twice.
+Nothing else is affected: tool arithmetic never reads this table, so no
+calculation and no student's memo is wrong because of it.
+
+To check, and to clean up if needed:
+
+```sql
+-- How many duplicate groups are there?
+SELECT count(*) FROM (
+  SELECT 1 FROM price_reference
+   GROUP BY vendor, product, retrieved_at HAVING count(*) > 1
+) d;
+
+-- Keep the lowest id in each group, remove the rest.
+DELETE FROM price_reference a
+      USING price_reference b
+      WHERE a.id > b.id
+        AND a.vendor = b.vendor
+        AND a.product = b.product
+        AND a.retrieved_at = b.retrieved_at;
+```
+
+Run it once from the Railway Postgres shell. The seeder will not re-create the
+duplicates. This is deliberately a manual cleanup rather than a migration:
+`server/migrate.js` is additive and idempotent by design, and the test suite
+rejects `DELETE FROM` inside it.
+
 ## Testing
 
 ```bash
 npm test          # 64 tests, zero external test dependencies, no database needed
 npm run lint      # ESLint 9 flat config, zero warnings
-npm run test:db   # integration tests, requires TEST_DATABASE_URL
+npm run test:db   # 11 integration tests, requires TEST_DATABASE_URL
 ```
 
 Integration tests skip themselves cleanly when `TEST_DATABASE_URL` is absent:
@@ -565,7 +607,8 @@ If you skip step 2, the server will not start. That is the design.
 |---|---|---|
 | `Privacy guard failed. Refusing to start.` | A column exists that is not on the allowlist | Read the listed violations. Either drop the column or add it deliberately to `COLUMN_ALLOWLIST`. |
 | `Startup failed: ... ECONNREFUSED` | Postgres unreachable after 8 retries | Confirm `DATABASE_URL`. Railway occasionally needs a redeploy after attaching a database. |
-| Reference endpoints return `503` | No `DATABASE_URL` | Expected in stateless mode. Attach Postgres if you want scenarios and sources. |
+| Reference endpoints return `503` | No `DATABASE_URL` | Expected in stateless mode. Attach Postgres if you want scenarios and sources. `/api/glossary` and `/api/rates` work regardless. |
+| `/api/prices` shows every product twice | The database was seeded more than once before the idempotency guard existed | Run the cleanup under [Removing duplicate price rows](#removing-duplicate-price-rows). Tool arithmetic is unaffected. |
 | Export button stays disabled | An unresolved answer is under 40 characters | The character counter under each box shows progress. |
 | `Price retrieval date must be formatted YYYY-MM-DD` | Browser date input not used | Use the date picker. The syllabus requires a dated price. |
 | PDF downloads but is empty | Popup or download blocker | Allow downloads for the domain. |

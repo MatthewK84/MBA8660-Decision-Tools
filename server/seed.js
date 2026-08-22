@@ -6,7 +6,7 @@
  */
 
 import { readFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readEnv } from "./config.js";
 import { connectWithRetry, createPool } from "./db.js";
@@ -57,23 +57,39 @@ async function seedScenarios(pool, rows) {
 }
 
 /**
- * Insert reference prices, skipping placeholder rows.
+ * Insert reference prices, skipping placeholder rows and rows already held.
+ *
+ * `price_reference` is a dated snapshot table: the same product retrieved on
+ * two different dates is two legitimate rows, and keeping both is the point.
+ * The natural key is therefore (vendor, product, retrieved_at), and this
+ * guards on it so re-seeding is idempotent.
+ *
+ * The guard lives here rather than in a unique index because a deployment
+ * that has already been seeded more than once holds duplicates, and adding
+ * the index would fail the migration and stop the server from booting. See
+ * "Removing duplicate price rows" in the README for the one-time cleanup.
  *
  * @param {import("pg").Pool} pool
  * @param {unknown[]} rows
- * @returns {Promise<number>}
+ * @returns {Promise<{ inserted: number, skipped: number }>}
  */
 async function seedPrices(pool, rows) {
   const real = rows.filter((row) => /** @type {Record<string, unknown>} */ (row).vendor !== "REPLACE_ME");
+  let inserted = 0;
   for (const row of real) {
     const p = /** @type {Record<string, unknown>} */ (row);
-    await pool.query(
+    const { rowCount } = await pool.query(
       `INSERT INTO price_reference (vendor, product, unit_label, unit_price_usd, retrieved_at, source_url, note)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            SELECT $1, $2, $3, $4, $5, $6, $7
+             WHERE NOT EXISTS (
+                   SELECT 1 FROM price_reference
+                    WHERE vendor = $1 AND product = $2 AND retrieved_at = $5
+             )`,
       [p.vendor, p.product, p.unitLabel, p.unitPriceUsd, p.retrievedAt, p.sourceUrl ?? "", p.note ?? ""]
     );
+    inserted += rowCount ?? 0;
   }
-  return real.length;
+  return { inserted, skipped: real.length - inserted };
 }
 
 /**
@@ -120,12 +136,37 @@ async function main() {
   const prices = await seedPrices(pool, await readJson("price-reference.json"));
   const sources = await seedSources(pool, await readJson("sources.json"));
 
-  console.log(`Seeded ${String(scenarios)} scenarios, ${String(prices)} prices, ${String(sources)} sources.`);
+  const priceReport = prices.skipped === 0
+    ? `${String(prices.inserted)} prices`
+    : `${String(prices.inserted)} new prices, ${String(prices.skipped)} already current`;
+  console.log(`Seeded ${String(scenarios)} scenarios, ${priceReport}, ${String(sources)} sources.`);
   await pool.end();
 }
 
-main().catch((error) => {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(`Seed failed: ${message}`);
-  process.exit(1);
-});
+/** Exported for the integration suite, which asserts re-seeding is idempotent. */
+export { seedPrices as seedPricesForTest };
+
+/**
+ * True only when this file was run directly, as `npm run seed` does.
+ *
+ * Without this guard, importing the module to test one function would run the
+ * whole seed against whatever DATABASE_URL happened to be set, which is a
+ * genuinely bad thing for a test to do by accident.
+ *
+ * @returns {boolean}
+ */
+function isDirectRun() {
+  const entry = process.argv[1];
+  if (entry === undefined) {
+    return false;
+  }
+  return resolve(entry) === fileURLToPath(import.meta.url);
+}
+
+if (isDirectRun()) {
+  main().catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Seed failed: ${message}`);
+    process.exit(1);
+  });
+}

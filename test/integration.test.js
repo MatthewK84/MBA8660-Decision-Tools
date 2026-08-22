@@ -10,7 +10,8 @@ import pg from "pg";
 
 import { runMigrations } from "../server/migrate.js";
 import { assertNoStudentColumns, COLUMN_ALLOWLIST } from "../server/privacy-guard.js";
-import { listScenarios, recordUsage, summariseUsage } from "../server/repository/reference.js";
+import { listPrices, listScenarios, recordUsage, summariseUsage } from "../server/repository/reference.js";
+import { allRates } from "../server/reference/rates.js";
 
 const URL = process.env.TEST_DATABASE_URL ?? "";
 const NOW = new Date("2026-08-15T12:00:00Z");
@@ -97,6 +98,47 @@ describe("postgres integration", { skip: URL === "" ? "TEST_DATABASE_URL not set
 
   it("rejects a tool slug long enough to smuggle content", async () => {
     await assert.rejects(() => recordUsage(pool, "x".repeat(64), "run", NOW), /violates check constraint/);
+  });
+
+  it("seeds every published price exactly once, however often the seeder runs", async () => {
+    // The instructor is told to re-run `npm run seed` after every deploy and
+    // whenever prices are re-verified. A bare INSERT would duplicate the whole
+    // price table on each run and quietly corrupt what students are shown.
+    const { seedPricesForTest } = await import("../server/seed.js");
+    const rows = allRates().map(({ key: _key, ...rest }) => rest);
+
+    await pool.query("TRUNCATE price_reference");
+    const first = await seedPricesForTest(pool, rows);
+    const second = await seedPricesForTest(pool, rows);
+    const third = await seedPricesForTest(pool, rows);
+
+    assert.equal(first.inserted, rows.length, "first seed should insert every rate");
+    assert.equal(second.inserted, 0, "second seed should insert nothing");
+    assert.equal(third.inserted, 0, "third seed should insert nothing");
+
+    const stored = await listPrices(pool);
+    assert.equal(stored.length, rows.length, "price table grew across re-seeds");
+
+    const { rows: dupes } = await pool.query(
+      `SELECT vendor, product, retrieved_at FROM price_reference
+        GROUP BY vendor, product, retrieved_at HAVING count(*) > 1`
+    );
+    assert.deepEqual(dupes, [], "the same price was stored twice");
+  });
+
+  it("adds a genuinely new price snapshot without disturbing the old one", async () => {
+    // A later retrieval date is a new row on purpose: this table is a dated
+    // snapshot, and the history of what a price was on a given day is evidence.
+    const { seedPricesForTest } = await import("../server/seed.js");
+    const rows = allRates().map(({ key: _key, ...rest }) => rest);
+    await pool.query("TRUNCATE price_reference");
+    await seedPricesForTest(pool, rows);
+
+    const reprice = rows.map((r, i) => (i === 0 ? { ...r, retrievedAt: "2027-01-15", unitPriceUsd: 0.031 } : r));
+    const result = await seedPricesForTest(pool, reprice);
+
+    assert.equal(result.inserted, 1, "a re-dated price should be added, not swallowed");
+    assert.equal((await listPrices(pool)).length, rows.length + 1);
   });
 
   it("rejects a negative budget ceiling", async () => {
