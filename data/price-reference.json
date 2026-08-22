@@ -1,11 +1,200 @@
 [
   {
-    "vendor": "REPLACE_ME",
-    "product": "Warehouse compute credit",
-    "unitLabel": "per credit",
-    "unitPriceUsd": 0,
+    "vendor": "Amazon Web Services",
+    "product": "S3 Standard, first 50 TB per month, us-east-1",
+    "unitLabel": "per GB-month",
+    "unitPriceUsd": 0.023,
     "retrievedAt": "2026-08-15",
-    "sourceUrl": "",
-    "note": "Placeholder. Seed real published prices before Week 4. Students are required to enter and date their own prices regardless; this table is a reference snapshot only."
+    "sourceUrl": "https://aws.amazon.com/s3/pricing/",
+    "note": "The default landing tier for a lakehouse. Billed on average bytes stored across the month, not peak."
+  },
+  {
+    "vendor": "Amazon Web Services",
+    "product": "S3 Standard-Infrequent Access, us-east-1",
+    "unitLabel": "per GB-month",
+    "unitPriceUsd": 0.0125,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://aws.amazon.com/s3/pricing/",
+    "note": "Roughly half the storage rate, but retrieval is charged per GB read. Cheap only if you rarely read it."
+  },
+  {
+    "vendor": "Amazon Web Services",
+    "product": "S3 Glacier Instant Retrieval, us-east-1",
+    "unitLabel": "per GB-month",
+    "unitPriceUsd": 0.004,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://aws.amazon.com/s3/pricing/",
+    "note": "About one sixth of Standard, with a 90-day minimum storage duration and a per-GB retrieval charge."
+  },
+  {
+    "vendor": "Amazon Web Services",
+    "product": "S3 Glacier Deep Archive, us-east-1",
+    "unitLabel": "per GB-month",
+    "unitPriceUsd": 0.00099,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://aws.amazon.com/s3/pricing/",
+    "note": "Around 4 percent of Standard, with a 180-day minimum and retrieval measured in hours, not milliseconds."
+  },
+  {
+    "vendor": "Snowflake",
+    "product": "On-demand storage, US East",
+    "unitLabel": "per TB-month",
+    "unitPriceUsd": 23,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://www.snowflake.com/en/data-cloud/pricing-options/",
+    "note": "Warehouse-managed storage. Compare against $23.55 per TB-month for the same bytes on S3 Standard."
+  },
+  {
+    "vendor": "Amazon Web Services",
+    "product": "S3 PUT, COPY, POST, LIST requests, us-east-1",
+    "unitLabel": "per 1,000 requests",
+    "unitPriceUsd": 0.005,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://aws.amazon.com/s3/pricing/",
+    "note": "The reason small files are expensive. A million 1 MB files cost 200x the request charge of a thousand 1 GB files."
+  },
+  {
+    "vendor": "Amazon Web Services",
+    "product": "S3 GET and SELECT requests, us-east-1",
+    "unitLabel": "per 1,000 requests",
+    "unitPriceUsd": 0.0004,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://aws.amazon.com/s3/pricing/",
+    "note": "Each file a query opens is at least one GET. File layout is therefore a cost decision, not only a speed one."
+  },
+  {
+    "vendor": "Amazon Web Services",
+    "product": "EC2 r5.16xlarge on-demand, 64 vCPU and 512 GiB RAM, us-east-1, Linux",
+    "unitLabel": "per node-hour",
+    "unitPriceUsd": 4.032,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://aws.amazon.com/ec2/pricing/on-demand/",
+    "note": "The single-node ceiling used throughout Week 1. 512 GiB of RAM in one machine, one address space, no network hop."
+  },
+  {
+    "vendor": "Amazon Web Services",
+    "product": "EC2 r5.4xlarge on-demand, 16 vCPU and 128 GiB RAM, us-east-1, Linux",
+    "unitLabel": "per node-hour",
+    "unitPriceUsd": 1.008,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://aws.amazon.com/ec2/pricing/on-demand/",
+    "note": "One worker in a distributed cluster. Exactly one quarter the RAM and one quarter the price of the single node above."
+  },
+  {
+    "vendor": "Amazon Web Services",
+    "product": "Athena, SQL over data in S3",
+    "unitLabel": "per TB scanned",
+    "unitPriceUsd": 5,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://aws.amazon.com/athena/pricing/",
+    "note": "You pay for bytes the engine reads, not rows returned. Compression and partitioning cut this bill directly."
+  },
+  {
+    "vendor": "Google Cloud",
+    "product": "BigQuery on-demand analysis, first 1 TiB per month free",
+    "unitLabel": "per TiB scanned",
+    "unitPriceUsd": 6.25,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://cloud.google.com/bigquery/pricing",
+    "note": "Priced per TiB (1,024^4 bytes), not per TB (1,000^4). The two differ by about 10 percent, which matters at scale."
+  },
+  {
+    "vendor": "Google Cloud",
+    "product": "BigQuery Standard edition capacity",
+    "unitLabel": "per slot-hour",
+    "unitPriceUsd": 0.04,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://cloud.google.com/bigquery/pricing",
+    "note": "Capacity pricing. You rent parallelism by the hour instead of paying per byte scanned."
+  },
+  {
+    "vendor": "Snowflake",
+    "product": "Standard edition compute credit, AWS US East",
+    "unitLabel": "per credit",
+    "unitPriceUsd": 2,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://www.snowflake.com/en/data-cloud/pricing-options/",
+    "note": "An XS warehouse burns 1 credit per hour; each size up doubles the burn. Enterprise is $3.00 and Business Critical $4.00."
+  },
+  {
+    "vendor": "Databricks",
+    "product": "Jobs Compute, Premium tier on AWS",
+    "unitLabel": "per DBU",
+    "unitPriceUsd": 0.15,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://www.databricks.com/product/pricing",
+    "note": "Excludes the underlying EC2 charge, which you also pay. The platform fee is not the whole bill."
+  },
+  {
+    "vendor": "Databricks",
+    "product": "All-Purpose Compute, Premium tier on AWS",
+    "unitLabel": "per DBU",
+    "unitPriceUsd": 0.55,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://www.databricks.com/product/pricing",
+    "note": "Interactive notebooks cost about 3.7x the same work run as a scheduled job. Same compute, different SKU."
+  },
+  {
+    "vendor": "Amazon Web Services",
+    "product": "Data transfer out to the internet, beyond the first 100 GB per month",
+    "unitLabel": "per GB",
+    "unitPriceUsd": 0.09,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://aws.amazon.com/ec2/pricing/on-demand/",
+    "note": "Roughly 4x the monthly cost of storing the same byte. Egress is what makes leaving a cloud expensive."
+  },
+  {
+    "vendor": "Amazon Web Services",
+    "product": "Data transfer between availability zones, each direction",
+    "unitLabel": "per GB",
+    "unitPriceUsd": 0.01,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://aws.amazon.com/ec2/pricing/on-demand/",
+    "note": "The hidden tax on a distributed shuffle. Every byte a worker sends to another worker across a zone is billed twice."
+  },
+  {
+    "vendor": "Amazon Web Services",
+    "product": "AWS Glue Data Catalog storage, beyond the first 1,000,000 objects",
+    "unitLabel": "per 100,000 objects per month",
+    "unitPriceUsd": 1,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://aws.amazon.com/glue/pricing/",
+    "note": "An object is a table, partition, or database. Partition count, not table count, is what usually blows past the free tier."
+  },
+  {
+    "vendor": "Amazon Web Services",
+    "product": "AWS Glue Data Catalog requests, beyond the first 1,000,000 per month",
+    "unitLabel": "per 1,000,000 requests",
+    "unitPriceUsd": 1,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://aws.amazon.com/glue/pricing/",
+    "note": "Every query plan hits the catalog several times. Catalog requests scale with query count, not data volume."
+  },
+  {
+    "vendor": "Amazon Web Services",
+    "product": "Bedrock Titan Text Embeddings V2, on-demand",
+    "unitLabel": "per 1,000,000 tokens",
+    "unitPriceUsd": 0.02,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://aws.amazon.com/bedrock/pricing/",
+    "note": "Charged once per chunk at index time, and again for every chunk you reindex. Reindex frequency is an embedding bill."
+  },
+  {
+    "vendor": "Anthropic",
+    "product": "Claude Haiku 4.5, input tokens",
+    "unitLabel": "per 1,000,000 tokens",
+    "unitPriceUsd": 1,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://claude.com/pricing",
+    "note": "Retrieved chunks are input tokens. A RAG answer that stuffs 20 chunks into context pays for all 20 every time."
+  },
+  {
+    "vendor": "Anthropic",
+    "product": "Claude Haiku 4.5, output tokens",
+    "unitLabel": "per 1,000,000 tokens",
+    "unitPriceUsd": 5,
+    "retrievedAt": "2026-08-15",
+    "sourceUrl": "https://claude.com/pricing",
+    "note": "Output costs 5x input on this model. Batch processing halves both; prompt caching cuts repeated input by roughly 90 percent."
   }
 ]

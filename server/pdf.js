@@ -17,14 +17,50 @@ const FONTS = {
 /**
  * Render a label and value list as a two-column table body.
  *
+ * The note rides under the value in smaller grey type. It is what lets a
+ * student read their own log six weeks later and still know what the figure
+ * meant and which published rate it came from.
+ *
  * @param {import("./tools/kit.js").Line[]} lines
  * @returns {unknown[][]}
  */
 function linesToRows(lines) {
   return lines.map((entry) => [
     { text: entry.label, bold: true, fontSize: 9 },
-    { text: entry.value, fontSize: 9 },
+    {
+      stack: [
+        { text: entry.value, fontSize: 9 },
+        ...(entry.note === undefined || entry.note === ""
+          ? []
+          : [{ text: entry.note, fontSize: 7, color: "#5d636e", margin: [0, 1, 0, 0] }]),
+      ],
+    },
   ]);
+}
+
+/**
+ * Render the term definitions as a closing appendix.
+ *
+ * @param {{ term: string, plain: string }[]} terms
+ * @returns {unknown[]}
+ */
+function termsSection(terms) {
+  if (terms.length === 0) {
+    return [];
+  }
+  return [
+    { text: "Terms used in this log", fontSize: 12, bold: true, margin: [0, 12, 0, 4] },
+    {
+      table: {
+        widths: [120, "*"],
+        body: terms.map((t) => [
+          { text: t.term, bold: true, fontSize: 8 },
+          { text: t.plain, fontSize: 8 },
+        ]),
+      },
+      layout: "lightHorizontalLines",
+    },
+  ];
 }
 
 /**
@@ -60,8 +96,9 @@ function buildDocDefinition(log) {
       ...answers,
       { text: "Warnings", fontSize: 12, bold: true, margin: [0, 12, 0, 4] },
       ...warnings,
+      ...termsSection(log.terms ?? []),
       {
-        text: `Generated ${log.generatedAt}. This tool computed arithmetic only. Every recommendation in the attached memo is the student's own.`,
+        text: `Generated ${log.generatedAt}. This tool computed arithmetic only. Prices shown are published list rates carrying the retrieval date noted beside each figure. Every recommendation in the attached memo is the student's own.`,
         fontSize: 7,
         italics: true,
         margin: [0, 18, 0, 0],
