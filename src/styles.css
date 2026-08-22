@@ -69,3 +69,56 @@ dl { margin: 0; }
 .warnings ul { margin: 0; padding-left: 18px; font-size: 13px; }
 .unresolved { border-color: var(--accent); border-width: 2px; }
 .error { background: #fdecec; color: var(--bad); border: 1px solid #f0c2c2; border-radius: 6px; padding: 10px 12px; font-size: 14px; }
+
+/* Field help, sliders, and presets -------------------------------------- */
+.number-input { display: flex; flex-direction: column; gap: 6px; }
+.slider { padding: 0; height: 20px; accent-color: var(--accent); cursor: pointer; }
+.presets { margin: 0 0 14px; padding: 12px; background: #faf9fc; border: 1px solid var(--line); border-radius: 6px; }
+.presets-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.presets-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+button.preset {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  border: 1px solid var(--accent);
+  background: #fff;
+  color: var(--accent);
+  border-radius: 999px;
+  cursor: pointer;
+}
+button.preset:hover { background: var(--accent); color: #fff; }
+
+/* Result lines now carry an explanatory note ----------------------------- */
+.line dd { display: flex; flex-direction: column; gap: 2px; }
+.line-value { font-size: 13px; font-weight: 600; }
+.line-note { color: var(--muted); font-size: 12px; line-height: 1.45; font-weight: 400; }
+
+/* Glossary --------------------------------------------------------------- */
+.glossary .explainer {
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  background: #faf9fc;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 4px 4px 0;
+}
+.term { border-bottom: 1px solid var(--line); padding: 7px 0; }
+.term summary { cursor: pointer; font-size: 13px; }
+.term summary::marker { color: var(--accent); }
+.term-plain { color: var(--muted); margin-left: 8px; }
+.term-body { margin: 8px 0 4px 16px; font-size: 13px; }
+.term-body dt { font-weight: 600; color: var(--accent); font-size: 12px; text-transform: uppercase; letter-spacing: .03em; margin-top: 7px; }
+.term-body dd { margin: 2px 0 0; color: var(--ink); line-height: 1.5; }
+
+/* Figures ---------------------------------------------------------------- */
+.figure { margin: 0 0 22px; }
+.figure-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.figure-unit { color: var(--muted); font-weight: 400; }
+.figure svg { display: block; max-width: 100%; overflow: visible; }
+.figure-caption { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 6px 0 0; }
+.figure-table { margin-top: 6px; }
+.figure-table summary { cursor: pointer; font-size: 12px; color: var(--accent); }
+.figure-table table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+.figure-table th { text-align: left; font-weight: 500; font-size: 12px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.figure-table td { text-align: right; font-size: 12px; font-weight: 600; padding: 4px 0; border-bottom: 1px solid var(--line); }

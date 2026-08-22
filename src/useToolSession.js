@@ -24,7 +24,7 @@ function readTools(data) {
  * Extract the result object from an unknown run payload.
  *
  * @param {unknown} data
- * @returns {{ computed: { label: string, value: string }[], assumptions: { label: string, value: string }[], unresolved: string[], warnings: string[] } | null}
+ * @returns {Record<string, unknown> | null}
  */
 function readResult(data) {
   if (data === null || typeof data !== "object" || !("result" in data)) {
@@ -34,9 +34,7 @@ function readResult(data) {
   if (result === null || typeof result !== "object") {
     return null;
   }
-  return /** @type {{ computed: { label: string, value: string }[], assumptions: { label: string, value: string }[], unresolved: string[], warnings: string[] }} */ (
-    result
-  );
+  return /** @type {Record<string, unknown>} */ (result);
 }
 
 /**
@@ -97,12 +95,21 @@ function useDraft() {
     });
   }, []);
 
+  const applyPreset = useCallback((preset) => {
+    const next = {};
+    for (const [key, value] of Object.entries(preset)) {
+      next[key] = String(value);
+    }
+    setValues(next);
+    setAnswers([]);
+  }, []);
+
   const reset = useCallback(() => {
     setValues({});
     setAnswers([]);
   }, []);
 
-  return { values, answers, setAnswers, changeValue, changeAnswer, reset };
+  return { values, answers, setAnswers, changeValue, changeAnswer, applyPreset, reset };
 }
 
 /**
@@ -161,6 +168,14 @@ export function useToolSession() {
     [active]
   );
   const week = active === undefined ? 0 : Number(active.week);
+  const presets = useMemo(
+    () => (active !== undefined && Array.isArray(active.presets) ? active.presets : []),
+    [active]
+  );
+  const terms = useMemo(
+    () => (active !== undefined && Array.isArray(active.terms) ? active.terms : []),
+    [active]
+  );
 
   const actions = useActions({ slug, week, values: draft.values, answers: draft.answers, setAnswers: draft.setAnswers });
   const { setResult, setError } = actions;
@@ -184,18 +199,45 @@ export function useToolSession() {
     [draft, setResult]
   );
 
+  const applyPreset = useCallback(
+    (preset) => {
+      draft.applyPreset(preset);
+      setResult(null);
+      setError("");
+    },
+    [draft, setResult, setError]
+  );
+
+  return assembleSession({ tools, slug, active, fields, presets, terms, draft, actions, bootError, applyPreset, selectTool, changeValue });
+}
+
+/**
+ * Flatten the composed hooks into the single object the components read.
+ * Split out only so no function in this file exceeds the size limit.
+ *
+ * @param {Record<string, unknown>} parts
+ * @returns {Record<string, unknown>}
+ */
+function assembleSession(parts) {
+  const draft = /** @type {Record<string, unknown>} */ (parts.draft);
+  const actions = /** @type {Record<string, unknown>} */ (parts.actions);
+  const active = /** @type {Record<string, unknown> | undefined} */ (parts.active);
   return {
-    tools,
-    slug,
+    tools: parts.tools,
+    slug: parts.slug,
     active,
-    fields,
+    fields: parts.fields,
+    presets: parts.presets,
+    terms: parts.terms,
+    explainer: active === undefined ? "" : String(active.explainer ?? ""),
+    applyPreset: parts.applyPreset,
     values: draft.values,
     answers: draft.answers,
     result: actions.result,
-    error: bootError === "" ? actions.error : bootError,
+    error: parts.bootError === "" ? actions.error : parts.bootError,
     busy: actions.busy,
-    selectTool,
-    changeValue,
+    selectTool: parts.selectTool,
+    changeValue: parts.changeValue,
     changeAnswer: draft.changeAnswer,
     compute: actions.compute,
     download: actions.download,

@@ -11,7 +11,8 @@
  *   computed: import("./tools/kit.js").Line[],
  *   assumptions: import("./tools/kit.js").Line[],
  *   unresolved: { question: string, answer: string }[],
- *   warnings: string[]
+ *   warnings: string[],
+ *   terms: { term: string, plain: string }[]
  * }} AssumptionLog
  */
 
@@ -42,7 +43,7 @@ function pairAnswers(questions, rawAnswers) {
 /**
  * Assemble the export payload.
  *
- * @param {{ courseCode: string, week: number, toolTitle: string, decision: string }} meta
+ * @param {{ courseCode: string, week: number, toolTitle: string, decision: string, terms?: { term: string, plain: string }[] }} meta
  * @param {import("./tools/kit.js").ToolResult} result
  * @param {unknown} rawAnswers
  * @param {Date} now
@@ -59,5 +60,6 @@ export function buildAssumptionLog(meta, result, rawAnswers, now) {
     assumptions: result.assumptions,
     unresolved: pairAnswers(result.unresolved, rawAnswers),
     warnings: result.warnings,
+    terms: meta.terms ?? [],
   };
 }

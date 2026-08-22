@@ -9,6 +9,7 @@ import { recordUsage } from "../repository/reference.js";
 import { renderAssumptionLogPdf } from "../pdf.js";
 import { InputError } from "../tools/kit.js";
 import { catalogSummary, findTool } from "../tools/catalog.js";
+import { resolveTerms } from "../glossary.js";
 
 /**
  * Extract a plain object body, rejecting anything else.
@@ -56,7 +57,13 @@ async function exportPdf(req, res, config, pool) {
     const body = readBody(req.body);
     const now = new Date();
     const result = tool.run(body, now);
-    const meta = { courseCode: config.courseCode, week: tool.week, toolTitle: tool.title, decision: tool.decision };
+    const meta = {
+      courseCode: config.courseCode,
+      week: tool.week,
+      toolTitle: tool.title,
+      decision: tool.decision,
+      terms: resolveTerms(tool.terms),
+    };
     const log = buildAssumptionLog(meta, result, body.answers, now);
     const pdf = await renderAssumptionLogPdf(log);
     countUsage(pool, tool.slug, "export");

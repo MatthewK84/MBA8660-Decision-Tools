@@ -5,6 +5,8 @@
 
 import { Router } from "express";
 import { listPrices, listScenarios, listSources, summariseUsage } from "../repository/reference.js";
+import { RATE_SNAPSHOT_DATE, allRates } from "../reference/rates.js";
+import { allTerms } from "../glossary.js";
 
 /**
  * Wrap a handler so a missing database returns a clear 503 rather than a
@@ -39,6 +41,17 @@ function guarded(pool, handler) {
  */
 export function buildReferenceRouter(pool) {
   const router = Router();
+
+  // Two endpoints that never touch the database. Definitions and published
+  // rates are version-controlled content, so they must work in stateless mode:
+  // a student on a deployment with no Postgres still needs to look up a term.
+  router.get("/glossary", (_req, res) => {
+    res.json({ terms: allTerms() });
+  });
+
+  router.get("/rates", (_req, res) => {
+    res.json({ retrievedAt: RATE_SNAPSHOT_DATE, rates: allRates() });
+  });
 
   router.get("/scenarios", guarded(pool, async (db) => ({ scenarios: await listScenarios(db) })));
 

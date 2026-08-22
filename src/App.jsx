@@ -1,48 +1,69 @@
 /**
  * Root component. Renders the tool picker and wires the session hook to the
- * three panels. All state is in memory. Nothing persists, client or server.
+ * panels. All state is in memory. Nothing persists, client or server.
  */
 
 import AssumptionForm from "./components/AssumptionForm.jsx";
+import GlossaryPanel from "./components/GlossaryPanel.jsx";
 import ResultPanel from "./components/ResultPanel.jsx";
 import UnresolvedPanel from "./components/UnresolvedPanel.jsx";
+import VisualPanel from "./components/VisualPanel.jsx";
 import { useToolSession } from "./useToolSession.js";
+
+/**
+ * The masthead and week picker.
+ *
+ * @param {{ session: Record<string, unknown> }} props
+ * @returns {JSX.Element}
+ */
+function Masthead({ session }) {
+  const tools = Array.isArray(session.tools) ? session.tools : [];
+  const active = session.active;
+  return (
+    <header>
+      <h1>MBA 8660 Decision Tools</h1>
+      <p>
+        These tools compute. They do not recommend. Every price is a published list rate with the
+        date it was retrieved. Nothing you type here is stored on the server, so export your
+        assumption log and attach it to your Canvas submission.
+      </p>
+      <label className="field" htmlFor="tool-picker">
+        <span className="field-label">Week</span>
+        <select
+          id="tool-picker"
+          value={String(session.slug)}
+          onChange={(event) => session.selectTool(event.target.value)}
+        >
+          {tools.map((tool) => (
+            <option key={String(tool.slug)} value={String(tool.slug)}>
+              {`Week ${String(tool.week)}: ${String(tool.title)}`}
+            </option>
+          ))}
+        </select>
+      </label>
+      {active === undefined ? null : <p className="decision">{String(active.decision)}</p>}
+    </header>
+  );
+}
 
 export default function App() {
   const session = useToolSession();
-  const { active, result } = session;
+  const { result } = session;
 
   return (
     <main>
-      <header>
-        <h1>MBA 8660 Decision Tools</h1>
-        <p>
-          These tools compute. They do not recommend. Nothing you type here is stored on the server,
-          so export your assumption log and attach it to your Canvas submission.
-        </p>
-        <label className="field" htmlFor="tool-picker">
-          <span className="field-label">Week</span>
-          <select
-            id="tool-picker"
-            value={session.slug}
-            onChange={(event) => session.selectTool(event.target.value)}
-          >
-            {session.tools.map((tool) => (
-              <option key={String(tool.slug)} value={String(tool.slug)}>
-                {`Week ${String(tool.week)}: ${String(tool.title)}`}
-              </option>
-            ))}
-          </select>
-        </label>
-        {active === undefined ? null : <p className="decision">{String(active.decision)}</p>}
-      </header>
+      <Masthead session={session} />
 
       {session.error === "" ? null : <p className="error">{session.error}</p>}
 
+      <GlossaryPanel terms={session.terms} explainer={session.explainer} />
+
       <AssumptionForm
         fields={session.fields}
+        presets={session.presets}
         values={session.values}
         onChange={session.changeValue}
+        onApplyPreset={session.applyPreset}
         onRun={() => void session.compute()}
         busy={session.busy}
       />
@@ -50,6 +71,7 @@ export default function App() {
       {result === null ? null : (
         <>
           <ResultPanel result={result} />
+          <VisualPanel visuals={result.visuals} />
           <UnresolvedPanel
             questions={result.unresolved}
             answers={session.answers}

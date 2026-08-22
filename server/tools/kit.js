@@ -6,12 +6,22 @@
  * the tool deliberately refuses to make, and the client blocks export until
  * the student has answered every one of them in writing.
  *
- * @typedef {{ label: string, value: string }} Line
+ * @typedef {{ label: string, value: string, note: string }} Line
+ * @typedef {{ label: string, value: number, group: string, display: string }} Point
+ * @typedef {{
+ *   kind: "bar" | "stack" | "gauge" | "timeline" | "matrix",
+ *   title: string,
+ *   caption: string,
+ *   unit: string,
+ *   points: Point[],
+ *   reference: { label: string, value: number } | null
+ * }} Visual
  * @typedef {{
  *   computed: Line[],
  *   assumptions: Line[],
  *   unresolved: string[],
- *   warnings: string[]
+ *   warnings: string[],
+ *   visuals: Visual[]
  * }} ToolResult
  * @typedef {{ ok: true, value: number } | { ok: false, error: string }} NumberParse
  */
@@ -157,10 +167,153 @@ export function num(value, decimals, unit) {
 /**
  * Build a Line.
  *
+ * The third argument is the part that teaches. `note` says what the number
+ * means, in words a student can reuse in a memo, and it travels into the
+ * exported PDF alongside the figure. A number with no note is a number the
+ * student has no way to defend.
+ *
  * @param {string} label
  * @param {string} value
+ * @param {string} note
  * @returns {Line}
  */
-export function line(label, value) {
-  return { label, value };
+export function line(label, value, note = "") {
+  return { label, value, note };
+}
+
+/* ------------------------------------------------------------------ *
+ * Money and unit formatting
+ * ------------------------------------------------------------------ */
+
+/**
+ * Format a dollar figure at a readable precision.
+ *
+ * Cost-per-query figures are fractions of a cent and cost-per-year figures are
+ * millions. One formatter that rounds everything to whole dollars turns the
+ * first into "$0" and hides the point, so precision scales with magnitude.
+ *
+ * @param {number} value
+ * @returns {string}
+ */
+export function money(value) {
+  const magnitude = Math.abs(value);
+  if (magnitude !== 0 && magnitude < 0.01) {
+    return `$${value.toFixed(5)}`;
+  }
+  if (magnitude < 1000) {
+    return `$${value.toFixed(2)}`;
+  }
+  return usd(value);
+}
+
+/**
+ * Convert gibibytes (binary, 1,024^3 bytes) to gigabytes (decimal, 1,000^3).
+ *
+ * Memory is sized in GiB and storage is billed in GB. Multiplying a GiB figure
+ * by a per-GB price understates the bill by about 7 percent, so every cost
+ * calculation in this application converts first.
+ *
+ * @param {number} gib
+ * @returns {number}
+ */
+export function gibToGb(gib) {
+  return (gib * 1024 ** 3) / 1000 ** 3;
+}
+
+/**
+ * Convert gibibytes to terabytes (decimal), the unit scan pricing uses.
+ *
+ * @param {number} gib
+ * @returns {number}
+ */
+export function gibToTb(gib) {
+  return gibToGb(gib) / 1000;
+}
+
+/* ------------------------------------------------------------------ *
+ * Chart specifications
+ *
+ * A tool describes what should be drawn; it knows nothing about SVG, pixels,
+ * or colour. Keeping the spec declarative preserves the purity invariant and
+ * lets the client render the same data as a chart or as a table.
+ * ------------------------------------------------------------------ */
+
+/**
+ * Build one plotted point.
+ *
+ * `display` is the label drawn on the mark, pre-formatted by the tool, so the
+ * renderer never has to guess whether a value is dollars, hours, or GiB.
+ *
+ * @param {string} label
+ * @param {number} value
+ * @param {string} display
+ * @param {string} group
+ * @returns {Point}
+ */
+export function point(label, value, display, group = "") {
+  return { label, value: Number.isFinite(value) ? value : 0, display, group };
+}
+
+/**
+ * A bar chart comparing magnitudes across categories.
+ *
+ * @param {string} title
+ * @param {string} unit
+ * @param {string} caption
+ * @param {Point[]} points
+ * @returns {Visual}
+ */
+export function barChart(title, unit, caption, points) {
+  return { kind: "bar", title, caption, unit, points, reference: null };
+}
+
+/**
+ * A stacked bar showing how one total divides into parts.
+ *
+ * @param {string} title
+ * @param {string} unit
+ * @param {string} caption
+ * @param {Point[]} points
+ * @returns {Visual}
+ */
+export function stackChart(title, unit, caption, points) {
+  return { kind: "stack", title, caption, unit, points, reference: null };
+}
+
+/**
+ * A gauge showing one measured value against a ceiling it must respect.
+ *
+ * @param {string} title
+ * @param {string} unit
+ * @param {string} caption
+ * @param {Point} measured
+ * @param {{ label: string, value: number }} ceiling
+ * @returns {Visual}
+ */
+export function gaugeChart(title, unit, caption, measured, ceiling) {
+  return { kind: "gauge", title, caption, unit, points: [measured], reference: ceiling };
+}
+
+/**
+ * A timeline of dated milestones, positioned by days from the assessment date.
+ *
+ * @param {string} title
+ * @param {string} caption
+ * @param {Point[]} points
+ * @returns {Visual}
+ */
+export function timelineChart(title, caption, points) {
+  return { kind: "timeline", title, caption, unit: "days from today", points, reference: null };
+}
+
+/**
+ * A grant matrix: one row per scope, value 1 for granted and 0 for denied.
+ *
+ * @param {string} title
+ * @param {string} caption
+ * @param {Point[]} points
+ * @returns {Visual}
+ */
+export function matrixChart(title, caption, points) {
+  return { kind: "matrix", title, caption, unit: "", points, reference: null };
 }
