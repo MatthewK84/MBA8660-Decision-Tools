@@ -13,6 +13,7 @@
     "lint": "eslint .",
     "test": "node --test test/*.test.js",
     "seed": "node server/seed.js",
+    "workbook": "node scripts/build-workbook.js",
     "test:db": "node --test test/integration.test.js"
   },
   "dependencies": {

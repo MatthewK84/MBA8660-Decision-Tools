@@ -8,6 +8,7 @@ import { buildAssumptionLog } from "../assumption-log.js";
 import { recordUsage } from "../repository/reference.js";
 import { renderAssumptionLogPdf } from "../pdf.js";
 import { InputError } from "../tools/kit.js";
+import { buildDecisionWorkbook, defaultSeeds, withSuppliedValues } from "../workbook.js";
 import { catalogSummary, findTool } from "../tools/catalog.js";
 import { resolveTerms } from "../glossary.js";
 
@@ -76,6 +77,44 @@ async function exportPdf(req, res, config, pool) {
   }
 }
 
+/** Media type of an Office Open XML workbook. */
+const WORKBOOK_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+/** File name every workbook download arrives under. */
+const WORKBOOK_NAME = "mba8660-decision-tools.xlsx";
+
+/**
+ * Stream the companion workbook.
+ *
+ * Every sheet opens on a seeded case organization, so the file is complete
+ * before a student types anything. When the request names a tool and carries
+ * that week's inputs, that week opens on the student's own figures instead,
+ * and the formulas are the same either way.
+ *
+ * @param {import("express").Request} req
+ * @param {import("express").Response} res
+ * @param {import("pg").Pool | null} pool
+ * @param {string} slug
+ * @returns {void}
+ */
+function sendWorkbook(req, res, pool, slug) {
+  try {
+    const now = new Date();
+    const seeds = defaultSeeds(now);
+    const merged = slug === "" ? seeds : withSuppliedValues(seeds, slug, readBody(req.body));
+    const bytes = buildDecisionWorkbook(merged, now);
+    if (slug !== "") {
+      countUsage(pool, slug, "export");
+    }
+    res.setHeader("Content-Type", WORKBOOK_TYPE);
+    res.setHeader("Content-Disposition", `attachment; filename="${WORKBOOK_NAME}"`);
+    res.send(bytes);
+  } catch (error) {
+    const { status, message } = toHttpError(error);
+    res.status(status).json({ error: message });
+  }
+}
+
 /**
  * Increment a usage counter, ignoring failures.
  *
@@ -130,6 +169,19 @@ export function buildToolsRouter(config, pool) {
 
   router.post("/tools/:slug/export.pdf", (req, res) => {
     void exportPdf(req, res, config, pool);
+  });
+
+  router.get("/workbook.xlsx", (req, res) => {
+    sendWorkbook(req, res, pool, "");
+  });
+
+  router.post("/tools/:slug/workbook.xlsx", (req, res) => {
+    const tool = findTool(req.params.slug);
+    if (tool === undefined) {
+      res.status(404).json({ error: "No such tool." });
+      return;
+    }
+    sendWorkbook(req, res, pool, tool.slug);
   });
 
   return router;

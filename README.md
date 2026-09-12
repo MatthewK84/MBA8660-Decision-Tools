@@ -15,6 +15,7 @@ Term: August 19 through December 4, 2026
 - [What every week costs](#what-every-week-costs)
 - [Terminology](#terminology)
 - [Figures](#figures)
+- [Equations and the Excel workbook](#equations-and-the-excel-workbook)
 - [How the tools map to the syllabus](#how-the-tools-map-to-the-syllabus)
 - [How a student uses it](#how-a-student-uses-it)
 - [Privacy and FERPA posture](#privacy-and-ferpa-posture)
@@ -210,6 +211,80 @@ evidence, and no meaning anywhere rests on colour alone.
 The no-recommendation invariant extends to figures: a chart title or caption
 containing recommendation language fails the suite.
 
+## Equations and the Excel workbook
+
+Every figure each week computes is shown as an equation under the week picker,
+and the same arithmetic ships as a Microsoft Excel workbook that reproduces it
+cell for cell.
+
+Both come from one description. `server/formulas/` holds a specification per
+week that writes each figure once, in Excel syntax, against named cells:
+
+```js
+output("workingGib", "Working set per query", "GiB",
+  (r) => `${r("compressedGib")}*${r("scanFraction")}`,
+  { match: "Working set per query" })
+```
+
+Rendering that expression with cell addresses produces the formula the workbook
+cell holds, `=$B$36*$B$9`. Rendering it with labels produces the equation the
+interface shows, `Columnar estimate / Fraction scanned per query`. Writing the
+arithmetic twice, once for Excel and once for the screen, is the mistake the
+specification exists to prevent.
+
+### What the workbook contains
+
+| Sheet | Holds |
+|---|---|
+| How to use | What the file is, and that it computes rather than recommends |
+| Week 1 to Week 12 | Inputs, the rates and constants used, and the computed figures |
+| Rates | The 22 published list prices, each with vendor, unit, retrieval date, and source |
+
+Each week sheet is laid out the same way, so a student who has read one has
+read all twelve. Column B holds every value. Inputs come first, then the rates
+and constants the arithmetic leans on, then the computed figures, each holding
+a formula rather than a pasted number, with the equation in words beside it.
+
+Published prices are held once, on the Rates sheet, and every week that uses a
+price refers to it there. Change a price on that sheet and each week that
+depends on it recalculates. Structural constants get cells too, including the
+ones easiest to get wrong: bytes per GiB is 1,024 cubed rather than one
+billion, and GB per GiB appears wherever a figure sized in memory is priced
+against storage billed in decimal units.
+
+### Getting the file
+
+| How | What you get |
+|---|---|
+| The button in the Equations panel | All twelve weeks, with the current week seeded from the values on screen |
+| `GET /api/workbook.xlsx` | All twelve weeks, each seeded from that week's first preset |
+| `npm run workbook` | The same file written to `docs/mba8660-decision-tools.xlsx` |
+
+A copy is committed at [`docs/mba8660-decision-tools.xlsx`](docs/mba8660-decision-tools.xlsx)
+so it can be attached to a submission without running anything. Regenerate and
+commit it whenever a tool, a rate, or a specification changes.
+
+### Why it can be trusted
+
+`test/formulas.test.js` computes every week twice, once through the tool in
+JavaScript and once by evaluating the Excel formulas the workbook ships, and
+fails if any figure disagrees. `server/formulas/evaluate.js` is the evaluator
+it uses, a shunting-yard parser over the small subset the specifications stay
+inside: arithmetic, comparison, and `ABS`, `CEILING`, `IF`, `MAX`, `MIN`, and
+`ROUND`. The same evaluator fills in the cached value beside each formula, so
+the numbers read correctly before a spreadsheet recalculates.
+
+The suite also checks that every line a tool prints either carries an equation
+or is listed, with a reason, as a line that does not. Several are: a failure
+mode is a sentence, a flag is a posture, and neither is arithmetic. Adding a
+line to a tool without accounting for it in the specification fails the suite
+rather than quietly going missing from the workbook.
+
+Week 10 is the one place the two differ by construction. The application counts
+days from the moment you run it; the sheet counts from an assessment date cell,
+seeded with the day the file was generated. Change that cell and every milestone
+count follows.
+
 ## How the tools map to the syllabus
 
 | Week | Session | Syllabus theme | Tool slug | Decision Owed |
@@ -351,8 +426,18 @@ server/
   pdf.js                   pdfmake document definition
   index.js                 boot order: connect, migrate, guard, then listen
   repository/reference.js  read reference data, increment counters
-  routes/tools.js          compute and export
+  routes/tools.js          compute, export, and workbook download
   routes/reference.js      read-only reference endpoints
+  workbook.js              week sheets, rate sheet, and the guide sheet
+  xlsx.js                  minimal Office Open XML writer, no dependency
+  formulas/
+    kit.js                 cell and specification builders
+    render.js              cell addresses, Excel and plain renderings, evaluation
+    evaluate.js            the Excel subset, parsed and evaluated
+    index.js               the twelve specifications, in week order
+    platform.js            weeks 1 to 4
+    economics.js           weeks 5 to 7
+    governance.js          weeks 8 to 12
   tools/
     kit.js                 result shape, input guards, money helpers, chart builders
     catalog.js             ToolDef entries: fields, help, bounds, presets, explainers, terms
@@ -363,9 +448,15 @@ src/
   App.jsx                  root, tool picker
   useToolSession.js        session state, split into small hooks
   api.js                   fetch client, discriminated results
-  components/              AssumptionForm, GlossaryPanel, ResultPanel, VisualPanel, UnresolvedPanel
+  components/              AssumptionForm, GlossaryPanel, FormulaPanel, ResultPanel, VisualPanel, UnresolvedPanel
+scripts/
+  build-workbook.js        npm run workbook
+docs/
+  mba8660-decision-tools.xlsx   the generated workbook, committed
 test/
   tools.test.js            53 tests, no database required
+  formulas.test.js         25 tests, every week computed twice and compared
+  workbook.test.js         12 tests, the package a spreadsheet actually opens
   privacy.test.js          11 tests, pure guard and migration checks
   integration.test.js      11 tests, requires TEST_DATABASE_URL
 ```
@@ -537,10 +628,16 @@ rejects `DELETE FROM` inside it.
 ## Testing
 
 ```bash
-npm test          # 64 tests, zero external test dependencies, no database needed
+npm test          # 101 tests, zero external test dependencies, no database needed
 npm run lint      # ESLint 9 flat config, zero warnings
 npm run test:db   # 11 integration tests, requires TEST_DATABASE_URL
+npm run workbook  # regenerate docs/mba8660-decision-tools.xlsx
 ```
+
+Thirty-seven of those tests exist to keep the workbook honest. Twenty-five
+compute every week twice, once through the tool and once by evaluating the
+Excel formulas the workbook ships, and twelve open the generated file the way a
+spreadsheet does and check what is inside it.
 
 Integration tests skip themselves cleanly when `TEST_DATABASE_URL` is absent:
 
@@ -577,6 +674,8 @@ To add a tool:
 5. Add a `ToolDef` to `server/tools/catalog.js` with field definitions (each needing `help`, and each numeric field needing `min` and `max`), an `explainer`, a `terms` array, and at least two `presets` that fill every field.
 6. Define any new term in `server/glossary.js`, with all four parts.
 7. Add a fixture to `VALID` in `test/tools.test.js`.
+8. Write a formula specification in the matching file under `server/formulas/`, declare it in `server/formulas/index.js`, and give every printed line either an `output` that reproduces it or an `unmodelled` entry saying why it has no equation. The suite fails otherwise, and the workbook would silently lose the figure.
+9. Run `npm run workbook` and commit the regenerated file.
 
 The catalog drives both the API and the entire user interface. **No new React page is required.** The invariant sweeps immediately hold the new tool to the no-recommendation rule.
 
