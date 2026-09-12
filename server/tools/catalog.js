@@ -52,6 +52,7 @@ import {
   exposureTimeline,
   weighOperatingModel,
 } from "./governance.js";
+import { describeEquations } from "../formulas/index.js";
 import { resolveTerms } from "../glossary.js";
 
 /**
@@ -554,6 +555,11 @@ export function findTool(slug) {
  * `resolveTerms` throws on an unknown key, so a typo in a `terms` array fails
  * the test suite rather than shipping a blank definition to a student.
  *
+ * Each entry also carries the week's equations, in words and in Excel syntax,
+ * with the cell each one occupies in the companion workbook. The application
+ * and the workbook render from that one description, so a figure a student
+ * reads on screen and the same figure in Excel cannot disagree.
+ *
  * @returns {Record<string, unknown>[]}
  */
 export function catalogSummary() {
@@ -566,5 +572,6 @@ export function catalogSummary() {
     presets,
     fields,
     terms: resolveTerms(terms),
+    ...describeEquations(slug),
   }));
 }

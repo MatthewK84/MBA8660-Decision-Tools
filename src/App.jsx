@@ -4,6 +4,7 @@
  */
 
 import AssumptionForm from "./components/AssumptionForm.jsx";
+import FormulaPanel from "./components/FormulaPanel.jsx";
 import GlossaryPanel from "./components/GlossaryPanel.jsx";
 import ResultPanel from "./components/ResultPanel.jsx";
 import UnresolvedPanel from "./components/UnresolvedPanel.jsx";
@@ -57,6 +58,14 @@ export default function App() {
       {session.error === "" ? null : <p className="error">{session.error}</p>}
 
       <GlossaryPanel terms={session.terms} explainer={session.explainer} />
+
+      <FormulaPanel
+        equations={session.equations}
+        unmodelled={session.unmodelled}
+        sheetName={session.sheetName}
+        onDownload={() => void session.downloadSheet()}
+        busy={session.busy}
+      />
 
       <AssumptionForm
         fields={session.fields}

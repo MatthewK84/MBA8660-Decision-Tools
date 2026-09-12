@@ -93,3 +93,34 @@ export async function exportPdf(slug, week, payload) {
     return { ok: false, error: error instanceof Error ? error.message : "Network error." };
   }
 }
+
+/**
+ * Download the companion workbook, with this week's sheet seeded from the
+ * values on screen.
+ *
+ * @param {string} slug
+ * @param {Record<string, unknown>} values
+ * @returns {Promise<ApiResult>}
+ */
+export async function downloadWorkbook(slug, values) {
+  try {
+    const response = await fetch(`/api/tools/${slug}/workbook.xlsx`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    });
+    if (!response.ok) {
+      return { ok: false, error: await readError(response) };
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "mba8660-decision-tools.xlsx";
+    anchor.click();
+    URL.revokeObjectURL(url);
+    return { ok: true, data: null };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Network error." };
+  }
+}

@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { exportPdf, fetchCatalog, runTool } from "./api.js";
+import { downloadWorkbook, exportPdf, fetchCatalog, runTool } from "./api.js";
 
 /**
  * Extract the tool list from an unknown catalog payload.
@@ -149,7 +149,38 @@ function useActions(args) {
     }
   }, [slug, week, values, answers]);
 
-  return { result, setResult, error, setError, busy, compute, download };
+  const downloadSheet = useCallback(async () => {
+    setBusy(true);
+    setError("");
+    const outcome = await downloadWorkbook(slug, values);
+    setBusy(false);
+    if (!outcome.ok) {
+      setError(outcome.error);
+    }
+  }, [slug, values]);
+
+  return { result, setResult, error, setError, busy, compute, download, downloadSheet };
+}
+
+/**
+ * The five lists the panels read off the selected tool: its fields, presets,
+ * glossary terms, equations, and the lines that carry no equation. Each is an
+ * array or, when no tool is selected yet, an empty one.
+ *
+ * @param {Record<string, unknown> | undefined} active
+ * @returns {Record<string, unknown[]>}
+ */
+function useActiveLists(active) {
+  return useMemo(() => {
+    const read = (key) => (active !== undefined && Array.isArray(active[key]) ? active[key] : []);
+    return {
+      fields: read("fields"),
+      presets: read("presets"),
+      terms: read("terms"),
+      equations: read("equations"),
+      unmodelled: read("unmodelled"),
+    };
+  }, [active]);
 }
 
 /**
@@ -163,19 +194,8 @@ export function useToolSession() {
   const { tools, slug, setSlug } = useCatalog(setBootError);
 
   const active = useMemo(() => tools.find((tool) => String(tool.slug) === slug), [tools, slug]);
-  const fields = useMemo(
-    () => (active !== undefined && Array.isArray(active.fields) ? active.fields : []),
-    [active]
-  );
+  const { fields, presets, terms, equations, unmodelled } = useActiveLists(active);
   const week = active === undefined ? 0 : Number(active.week);
-  const presets = useMemo(
-    () => (active !== undefined && Array.isArray(active.presets) ? active.presets : []),
-    [active]
-  );
-  const terms = useMemo(
-    () => (active !== undefined && Array.isArray(active.terms) ? active.terms : []),
-    [active]
-  );
 
   const actions = useActions({ slug, week, values: draft.values, answers: draft.answers, setAnswers: draft.setAnswers });
   const { setResult, setError } = actions;
@@ -208,7 +228,7 @@ export function useToolSession() {
     [draft, setResult, setError]
   );
 
-  return assembleSession({ tools, slug, active, fields, presets, terms, draft, actions, bootError, applyPreset, selectTool, changeValue });
+  return assembleSession({ tools, slug, active, fields, presets, terms, equations, unmodelled, draft, actions, bootError, applyPreset, selectTool, changeValue });
 }
 
 /**
@@ -229,6 +249,9 @@ function assembleSession(parts) {
     fields: parts.fields,
     presets: parts.presets,
     terms: parts.terms,
+    equations: parts.equations,
+    unmodelled: parts.unmodelled,
+    sheetName: active === undefined ? "" : String(active.sheetName ?? ""),
     explainer: active === undefined ? "" : String(active.explainer ?? ""),
     applyPreset: parts.applyPreset,
     values: draft.values,
@@ -241,5 +264,6 @@ function assembleSession(parts) {
     changeAnswer: draft.changeAnswer,
     compute: actions.compute,
     download: actions.download,
+    downloadSheet: actions.downloadSheet,
   };
 }
