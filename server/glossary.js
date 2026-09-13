@@ -342,6 +342,62 @@ export const TERMS = Object.freeze({
     "Costs latency and a person's attention on every gated action. That is exactly why teams scope it to writes rather than reads.",
     "A gate everyone approves without reading is theatre that costs latency and buys nothing. Approval rate near 100 percent is the tell."
   ),
+  "budget-ceiling": define(
+    "Budget ceiling",
+    "The most the platform is allowed to cost in a year, fixed before you design anything.",
+    "A stated annual limit on total platform spend, agreed with the budget holder and applied to the run rate rather than to any single line. The Final Project Artifact fails if the recommended platform exceeds it.",
+    "It is not a cost, it is the constraint every other cost is measured against. A ceiling changes which architecture is correct, not merely which is comfortable.",
+    "Students check the ceiling against year one and stop. Growth compounds against a ceiling that does not, so the year the plan breaches is usually year three."
+  ),
+  "run-rate": define(
+    "Run rate",
+    "What the platform costs to keep running for a year, once it is built.",
+    "The sum of the recurring annual streams - compute, storage, catalog, ingestion, controls, and governance staffing - excluding any one-time build or readiness spend.",
+    "It is the figure that recurs forever, which makes it the one a budget holder actually commits to. A one-time cost is negotiated once; a run rate is negotiated every year.",
+    "Adding a one-time build into the run rate makes year one look permanent and every later year look like a saving. Keep the two apart and the growth curve tells the truth."
+  ),
+  "three-year-tco": define(
+    "Three-year total cost of ownership",
+    "Everything the platform costs across three years, one-time spend included, with growth applied.",
+    "Year one run rate plus one-time investment, then each later year's run rate grown at the stated annual rate. Computed as a geometric series so the horizon and the growth rate are both visible and both arguable.",
+    "It is the number that decides between architectures whose first-year costs are close. A cheaper year one at a higher growth rate is routinely the more expensive choice by year three.",
+    "A three-year total computed at zero growth is a one-year total multiplied by three. If your growth rate is zero, say why, because the working set is almost certainly not flat."
+  ),
+  "rejected-alternative": define(
+    "Rejected alternative",
+    "The architecture you seriously considered and did not choose, named, with the reason in a single clause.",
+    "A required element of the Final Project Artifact. It must be an option you actually costed, not a straw man, and the reason must be one clause rather than a paragraph of hedging.",
+    "It costs you nothing to state and it is the cheapest evidence that a choice was made rather than defaulted into.",
+    "Naming an alternative nobody would choose proves nothing. The rejected alternative should be the one that was close, which is also the one you will be asked about in the Live Defense."
+  ),
+  "disconfirming-evidence": define(
+    "Disconfirming evidence",
+    "The specific thing you could observe that would tell you your recommendation was wrong.",
+    "An observation, stated in advance, that would reverse a decision: a measured figure crossing a threshold, a vendor price moving, a workload profile that does not match the forecast. It names what would change your mind and by when.",
+    "Stating it is free. Not stating it is expensive, because a recommendation with no reversal condition cannot be monitored and will be defended past the point it stops being true.",
+    "\"We would revisit if circumstances changed\" is not disconfirming evidence. A threshold and a date are."
+  ),
+  bluf: define(
+    "BLUF",
+    "Bottom line up front. The recommendation is the first sentence, not the conclusion.",
+    "A briefing convention in which the decision, and the action required of the reader, appear before the analysis that supports them. Every memo and module deliverable in this course uses it.",
+    "It costs nothing and it is the difference between a reader who acts and a reader who skims. An executive artifact that buries its recommendation on page three has spent its page budget badly.",
+    "BLUF is not a summary paragraph. A summary describes what the document contains; a BLUF states what you want the reader to do."
+  ),
+  "one-time-cost": define(
+    "One-time cost",
+    "Money spent once to get something built or compliant, which does not recur next year.",
+    "Non-recurring spend: build hours to first production use, a compliance programme build, migration effort, readiness work against a regulatory deadline. Distinct from the run rate it creates.",
+    "It lands entirely in year one, which is why year one usually looks worst and why comparing year one against a ceiling alone is misleading in both directions.",
+    "A one-time cost that recurs every year was never one-time. If the build has to be redone each time the vendor changes an API, that is maintenance wearing a build's clothing."
+  ),
+  consolidation: define(
+    "Consolidation",
+    "Carrying a figure you already computed forward into a larger artifact, instead of computing it again.",
+    "The module deliverable pattern in this course: each module takes the headline outputs of its weeks as inputs, and reconciles them into one cost model rather than restating the weekly arithmetic.",
+    "It costs nothing and it surfaces double counting, which is the error consolidation exists to catch. The same dollar appearing in two weeks becomes visible only when the weeks are added up.",
+    "Consolidating means reconciling, not concatenating. If a figure appears in two weeks you must decide which one owns it, and say so."
+  ),
   determinism: define(
     "Deterministic",
     "The same inputs always produce the same outputs.",

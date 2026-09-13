@@ -12,6 +12,12 @@ import {
   exposureTimeline,
   weighOperatingModel,
 } from "../server/tools/governance.js";
+import {
+  assembleFinalArtifact,
+  consolidateArchitecture,
+  consolidateCostModel,
+  consolidateGovernance,
+} from "../server/tools/modules.js";
 import { buildAssumptionLog } from "../server/assumption-log.js";
 import { TERMS, allTerms, resolveTerms } from "../server/glossary.js";
 import { RATES, allRates, citation, rate } from "../server/reference/rates.js";
@@ -139,6 +145,40 @@ const VALID = {
     grantWritetostaging: "Granted",
     grantWritetoproduction: "Granted",
   },
+  "module-1-architecture": {
+    caseOrganization: "Meridian Health Partners",
+    architecturePath: "Distributed", tableFormat: "Iceberg",
+    catalogChoice: "Managed Iceberg REST catalog", engineChoice: "Snowflake Standard",
+    workingSetYearThreeGib: 616.5, singleNodeCeilingGib: 512, exitCostUsd: 1411,
+    catalogAnnualUsd: 17000, engineAnnualUsd: 172800, storageAnnualUsd: 96600,
+    annualBudgetUsd: 850000, annualGrowthPct: 22, queriesPerYear: 328500, horizonYears: 3,
+  },
+  "module-2-cost-model": {
+    controlName: "Freshness SLA monitor on the claims table",
+    ingestionPath: "Buy",
+    platformAnnualUsd: 662600, annualSavingUsd: 128160, targetReductionPct: 20,
+    ingestionChosenAnnualUsd: 108000, ingestionCountedAnnualUsd: 120000, breakEvenMonths: 35,
+    controlAnnualUsd: 61440, exposureAvoidedUsd: 360000,
+    annualBudgetUsd: 850000, queriesPerYear: 328500, annualGrowthPct: 22, horizonYears: 3,
+  },
+  "module-3-governance": {
+    operatingModel: "Centralized", privacyPath: "State by state", aiActRole: "Deployer",
+    agentAuthMethod: "Short-lived vended credential", agentPersonalDataGrant: "Denied",
+    staffingAnnualUsd: 1140000, privacyBuildUsd: 440000, privacyAnnualUsd: 192000,
+    aiActReadinessUsd: 360000, daysToAnnexIii: 445,
+    ragAnnualUsd: 2746, deletionSlaDays: 45, reindexIntervalDays: 30,
+    agentAnnualUsd: 1470, operationsAnnualUsd: 583880, horizonYears: 3,
+  },
+  "final-project": {
+    caseOrganization: "Meridian Health Partners",
+    platformAnnualUsd: 534440, ingestionAnnualUsd: 108000, controlAnnualUsd: 61440,
+    governanceAnnualUsd: 1336216, oneTimeInvestmentUsd: 800000,
+    annualBudgetUsd: 2900000, annualGrowthPct: 22, queriesPerYear: 328500, horizonYears: 3,
+    rejectedArchitecture: "Single-node DuckDB on one 512 GiB machine with Parquet on object storage",
+    rejectionReason: "the year-three working set of 616 GiB exceeds the largest single node we are willing to rent",
+    mostLikelyWrong: "The 60 percent catch rate on the freshness monitor, which is my estimate rather than a measurement.",
+    disconfirmingEvidence: "Two consecutive quarters in which the monitor catches under 40 percent of logged freshness incidents.",
+  },
 };
 
 
@@ -169,8 +209,33 @@ describe("input guards", () => {
 
 describe("catalog", () => {
   it("covers weeks 1 through 12 exactly once", () => {
-    const weeks = TOOLS.map((tool) => tool.week).sort((a, b) => a - b);
+    const weeks = TOOLS.filter((tool) => tool.kind === "week").map((tool) => tool.week).sort((a, b) => a - b);
     assert.deepEqual(weeks, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  });
+
+  it("carries the three module deliverables and the final artifact, in order, after the weeks", () => {
+    const deliverables = TOOLS.filter((tool) => tool.kind !== "week");
+    assert.deepEqual(
+      deliverables.map((tool) => tool.label),
+      ["Module 1", "Module 2", "Module 3", "Final Project"]
+    );
+    assert.deepEqual(deliverables.map((tool) => tool.kind), ["module", "module", "module", "final"]);
+    assert.deepEqual(
+      deliverables.map((tool) => tool.covers),
+      [[1, 2, 3, 4], [5, 6, 7], [8, 9, 10, 11, 12], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]]
+    );
+  });
+
+  it("gives every tool a distinct slug, ordinal, and picker label", () => {
+    for (const key of ["slug", "week", "label"]) {
+      const values = TOOLS.map((tool) => tool[key]);
+      assert.equal(new Set(values).size, values.length, `Two tools share a ${key}.`);
+    }
+  });
+
+  it("consolidates every week into exactly one module deliverable", () => {
+    const covered = TOOLS.filter((tool) => tool.kind === "module").flatMap((tool) => tool.covers);
+    assert.deepEqual(covered.slice().sort((a, b) => a - b), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
   });
 
   it("has a valid input fixture for every registered tool", () => {
@@ -421,7 +486,12 @@ describe("the teaching invariants", () => {
 
   it("offers presets that fill every field the tool declares", () => {
     for (const tool of TOOLS) {
-      assert.ok(tool.presets.length >= 2, `${tool.slug} offers too few presets`);
+      // A weekly tool offers several presets so a student can watch a figure
+      // move between contrasting cases. A deliverable offers exactly one, the
+      // case organization assigned in Week 1, because the whole point of a
+      // consolidation is that it carries one organization's figures forward.
+      const floor = tool.kind === "week" ? 2 : 1;
+      assert.ok(tool.presets.length >= floor, `${tool.slug} offers too few presets`);
       const declared = tool.fields.map((field) => field.key);
       for (const preset of tool.presets) {
         const missing = declared.filter((key) => preset.values[key] === undefined);
@@ -520,7 +590,13 @@ describe("the price snapshot", () => {
     // programme cost. No vendor rate enters the arithmetic, so there is
     // nothing to cite. Every other week touches a published price and must
     // show where it came from and when it was retrieved.
-    const noVendorPrice = new Set(["control-cost", "governance-model", "privacy-paths", "ai-act"]);
+    const noVendorPrice = new Set([
+      "control-cost", "governance-model", "privacy-paths", "ai-act",
+      // The deliverables consolidate figures the student already computed and
+      // cited in the weeks they came from. No vendor rate enters again here,
+      // and re-citing one would imply a price this arithmetic never touched.
+      "module-1-architecture", "module-2-cost-model", "module-3-governance", "final-project",
+    ]);
     for (const tool of TOOLS) {
       if (noVendorPrice.has(tool.slug)) {
         continue;
@@ -560,8 +636,118 @@ describe("the glossary", () => {
   });
 });
 
+describe("the module deliverables", () => {
+  /**
+   * Pull the number out of a formatted figure such as "$1,234" or "5.9 percent".
+   *
+   * @param {import("../server/tools/kit.js").Line[]} lines
+   * @param {string} label
+   * @returns {number}
+   */
+  const figure = (lines, label) => {
+    const found = lines.find((entry) => entry.label.startsWith(label));
+    assert.ok(found !== undefined, `No line labelled ${label}.`);
+    return Number(found.value.replace(/[^0-9.-]/g, ""));
+  };
+
+  it("adds the three architecture layers and holds the ceiling against them", () => {
+    const result = consolidateArchitecture(VALID["module-1-architecture"]);
+    // 172,800 engine + 96,600 storage + 17,000 catalog.
+    assert.equal(figure(result.computed, "Engine and storage and catalog"), 286400);
+    assert.equal(figure(result.computed, "Budget remaining in year one"), 850000 - 286400);
+    // 286,400 grown two years at 22 percent.
+    assert.equal(Math.round(286400 * 1.22 ** 2), figure(result.computed, "Final-year platform cost"));
+  });
+
+  it("says so when a single node no longer fits the year-three working set", () => {
+    const single = { ...VALID["module-1-architecture"], architecturePath: "Single node" };
+    const warnings = consolidateArchitecture(single).warnings.join(" ");
+    assert.match(warnings, /exceeds the single-node ceiling/);
+  });
+
+  it("subtracts the ingestion already counted in platform spend rather than adding it twice", () => {
+    const result = consolidateCostModel(VALID["module-2-cost-model"]);
+    // The chosen path costs 108,000 against 120,000 already inside Week 5's total.
+    assert.equal(figure(result.computed, "Ingestion delta"), -12000);
+    // 662,600 - 128,160 saving - 12,000 released + 61,440 control.
+    assert.equal(figure(result.computed, "Operating run rate"), 583880);
+  });
+
+  it("flags a cut that falls short of its own mandate", () => {
+    const warnings = consolidateCostModel(VALID["module-2-cost-model"]).warnings.join(" ");
+    assert.match(warnings, /against a 20 percent mandate/);
+  });
+
+  it("flags a control that costs more than the cut it is funded from", () => {
+    const expensive = { ...VALID["module-2-cost-model"], controlAnnualUsd: 200000 };
+    const warnings = consolidateCostModel(expensive).warnings.join(" ");
+    assert.match(warnings, /costs more than the cut saved/);
+  });
+
+  it("totals governance and sets it against the operations it governs", () => {
+    const result = consolidateGovernance(VALID["module-3-governance"]);
+    // 1,140,000 staffing + 192,000 privacy + 2,746 corpus + 1,470 agent reads.
+    assert.equal(figure(result.computed, "Governance run rate"), 1336216);
+    assert.equal(figure(result.computed, "One-time readiness investment"), 800000);
+    const warnings = result.warnings.join(" ");
+    assert.match(warnings, /costs more per year than the platform it governs/);
+  });
+
+  it("catches a deletion promise the reindex interval cannot keep", () => {
+    const result = consolidateGovernance(VALID["module-3-governance"]);
+    assert.equal(figure(result.computed, "Deletion promise against reindex interval"), 15);
+    assert.match(result.warnings.join(" "), /stay retrievable in the index/);
+  });
+
+  it("objects to a static key that may read personal data", () => {
+    const loose = {
+      ...VALID["module-3-governance"],
+      agentAuthMethod: "Static API key",
+      agentPersonalDataGrant: "Granted",
+    };
+    assert.match(consolidateGovernance(loose).warnings.join(" "), /credential exposure window is unbounded/);
+  });
+
+  it("tests the artifact against the ceiling and reports a breach as a failure", () => {
+    const result = assembleFinalArtifact(VALID["final-project"]);
+    // 534,440 + 108,000 + 61,440 + 1,336,216.
+    assert.equal(figure(result.computed, "Annual run rate"), 2040096);
+    assert.equal(figure(result.computed, "Year one total"), 2840096);
+    const verdict = result.computed.find((entry) => entry.label === "Ceiling verdict");
+    assert.equal(verdict?.value, "Inside the ceiling");
+
+    const overspent = { ...VALID["final-project"], annualBudgetUsd: 2000000 };
+    const failed = assembleFinalArtifact(overspent);
+    assert.equal(failed.computed.find((entry) => entry.label === "Ceiling verdict")?.value, "Breaches the ceiling");
+    assert.match(failed.warnings.join(" "), /fails the artifact/);
+  });
+
+  it("names the year a plan that clears year one stops clearing the ceiling", () => {
+    const warnings = assembleFinalArtifact(VALID["final-project"]).warnings.join(" ");
+    assert.match(warnings, /Year one is inside the ceiling and year 3 exceeds it/);
+  });
+
+  it("requires the rejected alternative and the recommendation most likely to be wrong", () => {
+    for (const key of ["rejectedArchitecture", "rejectionReason", "mostLikelyWrong", "disconfirmingEvidence"]) {
+      const missing = { ...VALID["final-project"], [key]: "" };
+      assert.throws(() => assembleFinalArtifact(missing), InputError, `${key} was not required.`);
+    }
+  });
+
+  it("holds the rejection reason to a single clause", () => {
+    const twoSentences = {
+      ...VALID["final-project"],
+      rejectionReason: "It did not fit the working set. We also disliked the vendor relationship.",
+    };
+    assert.throws(() => assembleFinalArtifact(twoSentences), InputError);
+
+    const rambling = { ...VALID["final-project"], rejectionReason: "x".repeat(181) };
+    assert.throws(() => assembleFinalArtifact(rambling), InputError);
+  });
+});
+
 describe("export gate", () => {
-  const meta = { courseCode: "MBA 8660", week: 1, toolTitle: "Working Set Sizing", decision: "Test decision." };
+  const meta = { courseCode: "MBA 8660", label: "Week 1", toolTitle: "Working Set Sizing", decision: "Test decision." };
   const result = computeSizing(VALID.sizing);
   const good = result.unresolved.map(() => "This answer is long enough to count as an actual written judgment.");
 

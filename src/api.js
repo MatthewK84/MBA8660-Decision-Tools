@@ -67,11 +67,11 @@ export async function runTool(slug, input) {
  * Export the assumption log as a PDF and trigger a download.
  *
  * @param {string} slug
- * @param {number} week
+ * @param {string} label
  * @param {Record<string, unknown>} payload
  * @returns {Promise<ApiResult>}
  */
-export async function exportPdf(slug, week, payload) {
+export async function exportPdf(slug, label, payload) {
   try {
     const response = await fetch(`/api/tools/${slug}/export.pdf`, {
       method: "POST",
@@ -85,7 +85,7 @@ export async function exportPdf(slug, week, payload) {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `week-${week}-assumption-log.pdf`;
+    anchor.download = `${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-assumption-log.pdf`;
     anchor.click();
     URL.revokeObjectURL(url);
     return { ok: true, data: null };

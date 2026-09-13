@@ -40,6 +40,18 @@ function toHttpError(error) {
 }
 
 /**
+ * Turn a picker label into a file name fragment: "Module 1" to "module-1",
+ * "Week 7" to "week-7". Keeps the exported PDF recognisable in a downloads
+ * folder six weeks later, which is the only thing this has to achieve.
+ *
+ * @param {string} label
+ * @returns {string}
+ */
+function fileSlug(label) {
+  return label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+/**
  * Compute, validate the student's written answers, and stream a PDF.
  *
  * @param {import("express").Request} req
@@ -60,7 +72,7 @@ async function exportPdf(req, res, config, pool) {
     const result = tool.run(body, now);
     const meta = {
       courseCode: config.courseCode,
-      week: tool.week,
+      label: tool.label,
       toolTitle: tool.title,
       decision: tool.decision,
       terms: resolveTerms(tool.terms),
@@ -69,7 +81,7 @@ async function exportPdf(req, res, config, pool) {
     const pdf = await renderAssumptionLogPdf(log);
     countUsage(pool, tool.slug, "export");
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="week-${tool.week}-assumption-log.pdf"`);
+    res.setHeader("Content-Disposition", `attachment; filename="${fileSlug(tool.label)}-assumption-log.pdf"`);
     res.send(pdf);
   } catch (error) {
     const { status, message } = toHttpError(error);
@@ -160,7 +172,7 @@ export function buildToolsRouter(config, pool) {
       const body = readBody(req.body);
       const result = tool.run(body, new Date());
       countUsage(pool, tool.slug, "run");
-      res.json({ slug: tool.slug, week: tool.week, title: tool.title, result });
+      res.json({ slug: tool.slug, week: tool.week, label: tool.label, title: tool.title, result });
     } catch (error) {
       const { status, message } = toHttpError(error);
       res.status(status).json({ error: message });

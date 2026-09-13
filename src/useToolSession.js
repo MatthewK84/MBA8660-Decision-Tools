@@ -115,14 +115,14 @@ function useDraft() {
 /**
  * The compute and export actions.
  *
- * @param {{ slug: string, week: number, values: Record<string, string>, answers: string[], setAnswers: (next: string[]) => void }} args
+ * @param {{ slug: string, label: string, values: Record<string, string>, answers: string[], setAnswers: (next: string[]) => void }} args
  * @returns {Record<string, unknown>}
  */
 function useActions(args) {
   const [result, setResult] = useState(/** @type {ReturnType<typeof readResult>} */ (null));
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const { slug, week, values, answers, setAnswers } = args;
+  const { slug, label, values, answers, setAnswers } = args;
 
   const compute = useCallback(async () => {
     setBusy(true);
@@ -142,12 +142,12 @@ function useActions(args) {
   const download = useCallback(async () => {
     setBusy(true);
     setError("");
-    const outcome = await exportPdf(slug, week, { ...values, answers });
+    const outcome = await exportPdf(slug, label, { ...values, answers });
     setBusy(false);
     if (!outcome.ok) {
       setError(outcome.error);
     }
-  }, [slug, week, values, answers]);
+  }, [slug, label, values, answers]);
 
   const downloadSheet = useCallback(async () => {
     setBusy(true);
@@ -195,9 +195,9 @@ export function useToolSession() {
 
   const active = useMemo(() => tools.find((tool) => String(tool.slug) === slug), [tools, slug]);
   const { fields, presets, terms, equations, unmodelled } = useActiveLists(active);
-  const week = active === undefined ? 0 : Number(active.week);
+  const label = active === undefined ? "" : String(active.label);
 
-  const actions = useActions({ slug, week, values: draft.values, answers: draft.answers, setAnswers: draft.setAnswers });
+  const actions = useActions({ slug, label, values: draft.values, answers: draft.answers, setAnswers: draft.setAnswers });
   const { setResult, setError } = actions;
 
   const selectTool = useCallback(

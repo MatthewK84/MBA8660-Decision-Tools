@@ -110,16 +110,20 @@ describe("the workbook package", () => {
 
 describe("what the week sheets contain", () => {
   /**
-   * The worksheet part for one week.
+   * The worksheet part for one specification.
    *
-   * @param {number} week
+   * Sheets are ordered by position in SPECS, not by week number: the module
+   * deliverables carry ordinals past the twelve weeks, so deriving the index
+   * from the week would walk off the end of the workbook.
+   *
+   * @param {import("../server/formulas/kit.js").FormulaSpec} spec
    * @returns {string}
    */
-  const sheetFor = (week) => PARTS[`xl/worksheets/sheet${week + 1}.xml`];
+  const sheetFor = (spec) => PARTS[`xl/worksheets/sheet${SPECS.indexOf(spec) + 2}.xml`];
 
   it("puts a formula, not a number, in every computed cell", () => {
     for (const spec of SPECS) {
-      const xml = sheetFor(spec.week);
+      const xml = sheetFor(spec);
       const formulas = [...xml.matchAll(/<f>/g)].length;
       const rateLinks = spec.constants.filter((cell) => cell.rateKey !== "").length;
       assert.equal(formulas, spec.outputs.length + rateLinks, `Week ${spec.week} has the wrong number of formulas.`);
@@ -130,12 +134,12 @@ describe("what the week sheets contain", () => {
     const withRates = SPECS.filter((spec) => spec.constants.some((cell) => cell.rateKey !== ""));
     assert.ok(withRates.length > 0);
     for (const spec of withRates) {
-      assert.match(sheetFor(spec.week), /<f>Rates!\$C\$\d+<\/f>/);
+      assert.match(sheetFor(spec), /<f>Rates!\$C\$\d+<\/f>/);
     }
   });
 
   it("caches the value each formula evaluates to", () => {
-    const xml = sheetFor(1);
+    const xml = sheetFor(SPECS[0]);
     const cell = /<c r="B35"[^>]*><f>([^<]+)<\/f><v>([^<]+)<\/v><\/c>/.exec(xml);
     assert.ok(cell !== null, "Week 1 has no raw size cell.");
     assert.equal(cell[1], "$B$6*$B$7/$B$17");

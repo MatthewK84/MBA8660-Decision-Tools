@@ -162,7 +162,7 @@ the tension the Decision Owed asks the student to resolve.
 
 ## Terminology
 
-`server/glossary.js` defines **45 terms**, every one used anywhere in the
+`server/glossary.js` defines **53 terms**, every one used anywhere in the
 application. Each entry has four parts, and a test enforces all four:
 
 | Part | What it answers |
@@ -238,10 +238,11 @@ specification exists to prevent.
 |---|---|
 | How to use | What the file is, and that it computes rather than recommends |
 | Week 1 to Week 12 | Inputs, the rates and constants used, and the computed figures |
+| Module 1 to Module 3, Final Project | The same, for the graded deliverables, computed from the weekly figures carried forward |
 | Rates | The 22 published list prices, each with vendor, unit, retrieval date, and source |
 
-Each week sheet is laid out the same way, so a student who has read one has
-read all twelve. Column B holds every value. Inputs come first, then the rates
+Every sheet is laid out the same way, so a student who has read one has read
+all sixteen. Column B holds every value. Inputs come first, then the rates
 and constants the arithmetic leans on, then the computed figures, each holding
 a formula rather than a pasted number, with the equation in words beside it.
 
@@ -304,28 +305,50 @@ count follows.
 
 > **Session dates above are Saturdays**, following the syllabus meeting time of Saturday 12:30 to 2:30 PM ET and a first session of Saturday, August 22. If the Canvas module titles still carry Thursday dates, they need updating. See [Instructor operations](#instructor-operations).
 
-Weeks 13 through 15 have no tool. Week 13 is the final project workshop, and Weeks 14 and 15 are Live Defenses.
+Weeks 13 through 15 have no weekly tool. Week 13 is the final project workshop, and Weeks 14 and 15 are Live Defenses.
+
+### The deliverable tools
+
+Four further entries sit after Week 12 in the picker, under **Graded deliverables**. They are ordinary catalog entries built from the same template as the weeks: the same explainer, glossary, bounded fields, preset, equations, workbook sheet, chart panel, unresolved-question gate, and PDF assumption log. They differ in one respect only, and it is the respect that matters: **their inputs are the weekly tools' outputs.**
+
+| Deliverable | Slug | Consolidates | Points | Due |
+|---|---|---|---|---|
+| Module 1: Platform Architecture Recommendation | `module-1-architecture` | Weeks 1 to 4 | 100 | Wednesday, September 16 |
+| Module 2: Cost Model and Reliability Review | `module-2-cost-model` | Weeks 5 to 7 | 100 | Wednesday, October 7 |
+| Module 3: Governance and Regulatory Exposure Assessment | `module-3-governance` | Weeks 8 to 12 | 100 | Sunday, November 8 |
+| Final Project Artifact | `final-project` | All three modules | 300 | Sunday, November 15 |
+
+Nothing in a deliverable re-derives a working set from a row count or a saving from a spend category. A student arrives carrying figures they already computed and defended, and the tool reconciles them. Each offers a single preset, **Meridian Health Partners**, the Week 1 case organization carried the whole way through, so a student can see one coherent set of numbers survive from a row count in August to a three-year total in November.
+
+The consolidation is the teaching surface, because weekly figures overlap and the overlap is invisible until the weeks are added up:
+
+- **Module 1** adds engine, storage, and catalog into one run rate and grows it against a ceiling that does not grow. It usually surfaces two things for the first time: the catalog is a rounding error on the bill and the single point of failure on the architecture, and the exit priced in Week 2 looks trivially cheap because rewrite compute and egress are the only parts of leaving that arithmetic reaches.
+- **Module 2** takes the ingestion decision as a **delta** against what Week 5's total already counted, not as a fresh line. Week 5 cuts against total platform spend, which includes an ingestion category; Week 6 prices an ingestion path on its own. Adding both charges the same dollar twice, so the tool prints that delta as its own line and says why.
+- **Module 3** sets governance against the operations it governs. The finding is reliably the same and reliably a surprise: governance is payroll, payroll is large, and the other four lines are rounding against it.
+- **Final Project** assembles four recurring streams plus the one-time investment, grows them across three years, and tests year one against the ceiling.
+
+Three of the syllabus constraints are enforced in `final-project` rather than suggested. Exceeding the stated annual budget ceiling is reported as a failure, in the syllabus's own terms. The rejected architecture and its reason are required fields, and the reason is checked for being a single clause — 180 characters, one sentence — because a reason that runs to a paragraph is usually a decision not yet made. The recommendation most likely to be wrong is a required field, with the evidence that would reverse it beside it. None of the three is arithmetic, which is exactly why they are the ones a model cannot satisfy on a student's behalf.
 
 ### How the tools support the graded work
 
 - **Decision Memos**, 200 points, best 8 of 11, Weeks 1 through 11. Tier 1 AI policy. The assumption log attaches alongside the memo and the AI-Use Appendix.
-- **Module 1 Deliverable**, Wednesday September 16. Consolidates Weeks 1 through 4: `sizing`, `lock-in`, `catalog-failure`, `engine-budget`.
-- **Module 2 Deliverable**, Wednesday October 7. Consolidates Weeks 5 through 7: `finops-cut`, `build-vs-buy`, `control-cost`.
-- **Module 3 Deliverable**, Sunday November 8. Consolidates Weeks 8 through 12: `governance-model`, `privacy-paths`, `ai-act`, `rag-retention`, `agent-access`. Week 12 carries no separate memo; its agent access decision is a required component here.
+- **Module 1 Deliverable**, 100 points, Wednesday September 16. Consolidates Weeks 1 through 4 (`sizing`, `lock-in`, `catalog-failure`, `engine-budget`) in `module-1-architecture`.
+- **Module 2 Deliverable**, 100 points, Wednesday October 7. Consolidates Weeks 5 through 7 (`finops-cut`, `build-vs-buy`, `control-cost`) in `module-2-cost-model`.
+- **Module 3 Deliverable**, 100 points, Sunday November 8. Consolidates Weeks 8 through 12 (`governance-model`, `privacy-paths`, `ai-act`, `rag-retention`, `agent-access`) in `module-3-governance`. Week 12 carries no separate memo; its agent access decision is a required component here.
 - **Final Project Artifact**, Sunday November 15, 300 points. The four binding constraints map directly onto tool behavior:
 
   | Syllabus constraint | Enforced by |
   |---|---|
-  | Work under a stated annual budget ceiling | `engine-budget` warns when the ceiling is breached; the ceiling comes from the seeded case organization |
-  | Published list prices with retrieval date recorded | `engine-budget` and `build-vs-buy` reject a missing, malformed, or future retrieval date. Every tool that uses a default rate prints that rate's own retrieval date beside the figure |
-  | Name one architecture you rejected | Surfaced as an unresolved question in `lock-in` and `build-vs-buy` |
-  | Identify what is most likely wrong | Surfaced as an unresolved question in `sizing`, `control-cost`, and `ai-act` |
+  | Work under a stated annual budget ceiling | `final-project` prints a ceiling verdict and reports a breach as an artifact failure. `module-1-architecture` and `module-2-cost-model` warn earlier, when the architecture or operations alone breach it, and when a plan that clears year one stops clearing by year three. `engine-budget` warns at the weekly level |
+  | Published list prices with retrieval date recorded | `engine-budget` and `build-vs-buy` reject a missing, malformed, or future retrieval date. Every tool that uses a default rate prints that rate's own retrieval date beside the figure. The deliverables cite no rate of their own: they carry figures already cited in the weeks they came from |
+  | Name one architecture you rejected | A required field in `final-project`, with the reason checked for being a single clause. Surfaced earlier as an unresolved question in `lock-in`, `build-vs-buy`, and `module-1-architecture` |
+  | Identify what is most likely wrong | A required field in `final-project`, paired with the evidence that would change your mind. Surfaced earlier as an unresolved question in `sizing`, `control-cost`, and `ai-act` |
 
 - **Live Defense**, November 19 or December 3, 200 points. Tier 3 AI policy, no assistance. The assumption logs are what the student defends.
 
 ## How a student uses it
 
-1. Open the app and pick the current week from the dropdown.
+1. Open the app and pick the current week, or the deliverable you are building, from the dropdown.
 2. Read the Decision Owed, restated from the syllabus.
 3. Read **What this week is about**, and open any term that is unfamiliar. Each definition says what it means plainly, what it means precisely, what it costs, and how it is commonly got wrong.
 4. Press a **case organization** button to fill the form with a realistic starting point, or enter figures directly. Numeric inputs have a slider beside the box, so an assumption can be dragged and the effect on cost watched rather than guessed at.
@@ -415,7 +438,7 @@ data/                      instructor-authored seed data, version controlled
   price-reference.json     reference price snapshot
   sources.json             assigned sources by week
 server/
-  glossary.js              45 terms: plain, precise, what it costs, how it is got wrong
+  glossary.js              53 terms: plain, precise, what it costs, how it is got wrong
   reference/rates.js       22 published list prices, each dated and sourced
   config.js                every environment variable, declared in one place
   db.js                    pool creation, connect with bounded exponential backoff
@@ -428,22 +451,24 @@ server/
   repository/reference.js  read reference data, increment counters
   routes/tools.js          compute, export, and workbook download
   routes/reference.js      read-only reference endpoints
-  workbook.js              week sheets, rate sheet, and the guide sheet
+  workbook.js              week and deliverable sheets, rate sheet, and the guide sheet
   xlsx.js                  minimal Office Open XML writer, no dependency
   formulas/
     kit.js                 cell and specification builders
     render.js              cell addresses, Excel and plain renderings, evaluation
     evaluate.js            the Excel subset, parsed and evaluated
-    index.js               the twelve specifications, in week order
+    index.js               the sixteen specifications, in picker order
     platform.js            weeks 1 to 4
     economics.js           weeks 5 to 7
     governance.js          weeks 8 to 12
+    modules.js             the three modules and the final artifact
   tools/
     kit.js                 result shape, input guards, money helpers, chart builders
     catalog.js             ToolDef entries: fields, help, bounds, presets, explainers, terms
     platform.js            weeks 1 to 4
     economics.js           weeks 5 to 7
     governance.js          weeks 8 to 12
+    modules.js             the three modules and the final artifact, fed by the weeks
 src/
   App.jsx                  root, tool picker
   useToolSession.js        session state, split into small hooks
@@ -679,6 +704,8 @@ To add a tool:
 
 The catalog drives both the API and the entire user interface. **No new React page is required.** The invariant sweeps immediately hold the new tool to the no-recommendation rule.
 
+A deliverable is added the same way, with three differences. Set `kind` to `"module"` or `"final"`, give it a `label` such as `"Module 4"` and the weeks it `covers`, and continue the `week` ordinal past the twelve weeks — several places, the workbook sheet order among them, rely on `week` matching a tool's position in `TOOLS`. Pass `sheetName` to `spec()` so the workbook tab reads "Module 4" rather than "Week 17". Take the weekly tools' *outputs* as fields rather than re-deriving them, and check the result for double counting: if a figure is already inside another input's total, model the delta and print it as its own line, the way `module-2-cost-model` does with ingestion.
+
 To add a database column:
 
 1. Add the DDL to `STATEMENTS` in `server/migrate.js`, additive and idempotent.
@@ -694,7 +721,7 @@ If you skip step 2, the server will not start. That is the design.
 
 **During the term.** `GET /api/usage` returns aggregate run and export counts per tool. Low export counts relative to runs mean students are computing but not answering the unresolved questions, which is worth raising in session.
 
-**Terminology.** `GET /api/glossary` returns all 45 definitions as JSON, which is convenient for building a term sheet or a quiz. Each week's terms are also appended to that week's exported PDF, so a student's own assumption log is a study aid.
+**Terminology.** `GET /api/glossary` returns all 53 definitions as JSON, which is convenient for building a term sheet or a quiz. Each week's terms are also appended to that week's exported PDF, so a student's own assumption log is a study aid.
 
 **Canvas alignment.** The syllabus sets sessions on Saturday 12:30 to 2:30 PM ET, with Week 1 on Saturday, August 22. If the Canvas modules still carry Thursday dates, update the module titles. Assignment due dates are unaffected, since memos are due Sunday and module deliverables carry fixed calendar dates.
 
