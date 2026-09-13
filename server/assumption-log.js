@@ -4,7 +4,7 @@
  *
  * @typedef {{
  *   courseCode: string,
- *   week: number,
+ *   label: string,
  *   toolTitle: string,
  *   decision: string,
  *   generatedAt: string,
@@ -43,7 +43,7 @@ function pairAnswers(questions, rawAnswers) {
 /**
  * Assemble the export payload.
  *
- * @param {{ courseCode: string, week: number, toolTitle: string, decision: string, terms?: { term: string, plain: string }[] }} meta
+ * @param {{ courseCode: string, label: string, toolTitle: string, decision: string, terms?: { term: string, plain: string }[] }} meta
  * @param {import("./tools/kit.js").ToolResult} result
  * @param {unknown} rawAnswers
  * @param {Date} now
@@ -52,7 +52,7 @@ function pairAnswers(questions, rawAnswers) {
 export function buildAssumptionLog(meta, result, rawAnswers, now) {
   return {
     courseCode: meta.courseCode,
-    week: meta.week,
+    label: meta.label,
     toolTitle: meta.toolTitle,
     decision: meta.decision,
     generatedAt: now.toISOString(),

@@ -1,5 +1,6 @@
 /**
- * The formula specifications, one per course week, in week order.
+ * The formula specifications, one per course week and one per deliverable,
+ * in the order the picker shows them.
  *
  * This is the single place the arithmetic is written down in Excel terms. The
  * workbook and the equations shown beside the week picker are both rendered
@@ -17,6 +18,7 @@ import {
   PRIVACY_SPEC,
   RAG_SPEC,
 } from "./governance.js";
+import { FINAL_ARTIFACT_SPEC, MODULE_1_SPEC, MODULE_2_SPEC, MODULE_3_SPEC } from "./modules.js";
 import { SpecError } from "./kit.js";
 import { renderEquations } from "./render.js";
 
@@ -34,6 +36,10 @@ export const SPECS = Object.freeze([
   AI_ACT_SPEC,
   RAG_SPEC,
   AGENT_SPEC,
+  MODULE_1_SPEC,
+  MODULE_2_SPEC,
+  MODULE_3_SPEC,
+  FINAL_ARTIFACT_SPEC,
 ]);
 
 /**

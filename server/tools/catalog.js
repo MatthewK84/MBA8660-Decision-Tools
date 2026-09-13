@@ -1,5 +1,12 @@
 /**
- * The tool catalog. One entry per course week.
+ * The tool catalog. One entry per course week, then one per graded deliverable.
+ *
+ * Weeks 1 to 12 compute. The module deliverables and the Final Project Artifact
+ * consolidate: their inputs are the weekly tools' outputs, so a student carries
+ * figures forward rather than deriving them twice. They are ordinary entries in
+ * this list and nothing downstream treats them specially, which is the point.
+ * `kind` says which sort an entry is and `label` is what the picker shows, so
+ * the module deliverables never appear as "Week 13".
  *
  * The catalog drives the API and the entire user interface. Adding a tool
  * means adding an entry here and a pure function in one of the sibling
@@ -28,9 +35,13 @@
  *   step?: number
  * }} FieldDef
  * @typedef {{ name: string, note: string, values: Record<string, string | number> }} Preset
+ * @typedef {"week" | "module" | "final"} ToolKind
  * @typedef {{
  *   slug: string,
  *   week: number,
+ *   kind: ToolKind,
+ *   label: string,
+ *   covers: readonly number[],
  *   title: string,
  *   decision: string,
  *   explainer: string,
@@ -52,6 +63,19 @@ import {
   exposureTimeline,
   weighOperatingModel,
 } from "./governance.js";
+import {
+  AI_ACT_ROLES,
+  ARCHITECTURE_PATHS,
+  AUTH_METHODS,
+  INGESTION_PATHS,
+  OPERATING_MODELS,
+  PRIVACY_PATHS,
+  TABLE_FORMATS,
+  assembleFinalArtifact,
+  consolidateArchitecture,
+  consolidateCostModel,
+  consolidateGovernance,
+} from "./modules.js";
 import { describeEquations } from "../formulas/index.js";
 import { resolveTerms } from "../glossary.js";
 
@@ -152,6 +176,9 @@ export const TOOLS = Object.freeze([
   {
     slug: "sizing",
     week: 1,
+    kind: "week",
+    label: "Week 1",
+    covers: [1],
     title: "Working Set Sizing and Cost",
     decision: "Does this workload need a distributed system? Recommend yes or no, and show the sizing arithmetic and the dollar figures that support your answer.",
     explainer:
@@ -173,6 +200,9 @@ export const TOOLS = Object.freeze([
   {
     slug: "lock-in",
     week: 2,
+    kind: "week",
+    label: "Week 2",
+    covers: [2],
     title: "Table Format Lock-In and Exit Cost",
     decision: "Recommend a table format. Name the vendor lock-in you are accepting, say why you accept it, and price the exit.",
     explainer:
@@ -202,6 +232,9 @@ export const TOOLS = Object.freeze([
   {
     slug: "catalog-failure",
     week: 3,
+    kind: "week",
+    label: "Week 3",
+    covers: [3],
     title: "Catalog Failure Modes and Cost",
     decision: "Choose a catalog. Name the failure mode you inherit with that choice, say how you would detect it, and price the catalog itself.",
     explainer:
@@ -232,6 +265,9 @@ export const TOOLS = Object.freeze([
   {
     slug: "engine-budget",
     week: 4,
+    kind: "week",
+    label: "Week 4",
+    covers: [4],
     title: "Engine Cost Against Budget Ceiling",
     decision: "Recommend an engine under a fixed annual budget. State explicitly what capability you gave up to stay inside it.",
     explainer:
@@ -262,6 +298,9 @@ export const TOOLS = Object.freeze([
   {
     slug: "finops-cut",
     week: 5,
+    kind: "week",
+    label: "Week 5",
+    covers: [5],
     title: "Spend Reduction and Unit Economics",
     decision: "Cut 20 percent of platform spend. Name what breaks, who complains, what you tell them, and what the cut does to cost per query.",
     explainer:
@@ -295,6 +334,9 @@ export const TOOLS = Object.freeze([
   {
     slug: "build-vs-buy",
     week: 6,
+    kind: "week",
+    label: "Week 6",
+    covers: [6],
     title: "Build Versus Buy Break-Even",
     decision: "Build or buy. Show the break-even in months and name the single assumption the answer hinges on.",
     explainer:
@@ -325,6 +367,9 @@ export const TOOLS = Object.freeze([
   {
     slug: "control-cost",
     week: 7,
+    kind: "week",
+    label: "Week 7",
+    covers: [7],
     title: "Reliability Control Pricing",
     decision: "Which single control would have caught this incident, what does it cost per year, and how much faster would you have known?",
     explainer:
@@ -361,6 +406,9 @@ export const TOOLS = Object.freeze([
   {
     slug: "governance-model",
     week: 8,
+    kind: "week",
+    label: "Week 8",
+    covers: [8],
     title: "Operating Model Weighting and Staffing Cost",
     decision: "Centralize or federate data ownership. Defend the choice against its strongest counterargument, not its weakest.",
     explainer:
@@ -404,6 +452,9 @@ export const TOOLS = Object.freeze([
   {
     slug: "privacy-paths",
     week: 9,
+    kind: "week",
+    label: "Week 9",
+    covers: [9],
     title: "Privacy Compliance Path Cost",
     decision: "Adopt one national internal standard or comply state by state. Cost both paths and pick one.",
     explainer:
@@ -439,6 +490,9 @@ export const TOOLS = Object.freeze([
   {
     slug: "ai-act",
     week: 10,
+    kind: "week",
+    label: "Week 10",
+    covers: [10],
     title: "EU AI Act Exposure Timeline",
     decision: "Article 50 transparency duties apply now. High-risk duties were deferred. Does your roadmap change, and by how much?",
     explainer:
@@ -468,6 +522,9 @@ export const TOOLS = Object.freeze([
   {
     slug: "rag-retention",
     week: 11,
+    kind: "week",
+    label: "Week 11",
+    covers: [11],
     title: "Retrieval Corpus Retention and Cost",
     decision: "Write the retention, lineage, and evaluation policy for a retrieval corpus that contains customer records.",
     explainer:
@@ -504,6 +561,9 @@ export const TOOLS = Object.freeze([
   {
     slug: "agent-access",
     week: 12,
+    kind: "week",
+    label: "Week 12",
+    covers: [12],
     title: "Agent Access Scope and Run Cost",
     decision: "How does an autonomous agent authenticate to your platform, what is it permitted to read, and what does that reading cost?",
     explainer:
@@ -536,6 +596,167 @@ export const TOOLS = Object.freeze([
     ],
     run: (input) => buildScopeMatrix(input),
   },
+  {
+    slug: "module-1-architecture",
+    week: 13,
+    kind: "module",
+    label: "Module 1",
+    covers: [1, 2, 3, 4],
+    title: "Platform Architecture Recommendation",
+    decision: "Consolidate Weeks 1 to 4 into one architecture recommendation: storage, table format, catalog, and engine, with a stated lock-in position and a three-year cost that lives inside the ceiling.",
+    explainer:
+      "This is the first of three module deliverables, worth 100 points, due at the end of Week 4. It does not ask you to compute anything new. It asks you to carry four figures you already defended, reconcile them, and answer for the total. Weeks 1 to 4 each priced one layer in isolation; a platform is the sum, and the sum is measured against a ceiling that does not grow while your working set does. Two things usually surface here for the first time. The catalog turns out to be a rounding error on the bill and the single point of failure on the architecture, which is a cost profile no budget conversation handles well. And the exit you priced in Week 2 looks trivially cheap, because rewrite compute and egress are the only parts of leaving that arithmetic reaches. Four pages plus exhibits, BLUF format, with a diagram.",
+    terms: ["consolidation", "budget-ceiling", "run-rate", "three-year-tco", "working-set", "single-node", "table-format", "catalog", "egress", "blast-radius", "unit-economics", "bluf"],
+    presets: [
+      preset("Meridian Health Partners", "The Week 1 case organization carried through Weeks 2, 3, and 4: distributed on Iceberg, managed catalog, Snowflake Standard under an $850,000 ceiling.", {
+        caseOrganization: "Meridian Health Partners",
+        architecturePath: "Distributed", tableFormat: "Iceberg",
+        catalogChoice: "Managed Iceberg REST catalog", engineChoice: "Snowflake Standard",
+        workingSetYearThreeGib: 616.5, singleNodeCeilingGib: 512, exitCostUsd: 1411,
+        catalogAnnualUsd: 17000, engineAnnualUsd: 172800, storageAnnualUsd: 96600,
+        annualBudgetUsd: 850000, annualGrowthPct: 22, queriesPerYear: 328500, horizonYears: 3,
+      }),
+    ],
+    fields: [
+      { key: "caseOrganization", label: "Case organization", type: "text", help: "The organization assigned in Week 1. One case, carried to the Live Defense.", term: "" },
+      selectField("architecturePath", "Architecture path (Week 1)", ARCHITECTURE_PATHS, "What Week 1 recommended once you had sized the working set.", "distributed-system"),
+      numberField("workingSetYearThreeGib", "Year-three working set (Week 1)", "GiB", "Carried from Week 1. This is the figure that decides whether one machine is still an option.", { min: 0.1, max: 1000000, step: 10, term: "working-set" }),
+      numberField("singleNodeCeilingGib", "Single-node memory ceiling (Week 1)", "GiB", "The largest single machine you are willing to rent. Raising it is a decision, not a fact.", { min: 16, max: 24000, step: 16, term: "single-node" }),
+      selectField("tableFormat", "Table format (Week 2)", TABLE_FORMATS, "The specification governing commits, snapshots, and schema evolution over your files.", "table-format"),
+      numberField("exitCostUsd", "Priced exit cost (Week 2)", "USD", "Rewrite compute plus egress, from Week 2. It prices the mechanical exit and nothing else.", { min: 0, max: 100000000, step: 1000, term: "egress" }),
+      { key: "catalogChoice", label: "Catalog (Week 3)", type: "text", help: "The catalog you chose, named. Every query passes through it.", term: "catalog" },
+      numberField("catalogAnnualUsd", "Catalog annual cost (Week 3)", "USD per year", "Week 3's objects and requests come out near zero. Add the licence or the self-hosting salary, because that part is not near zero.", { min: 0, max: 10000000, step: 1000 }),
+      { key: "engineChoice", label: "Engine (Week 4)", type: "text", help: "The engine you recommended under the budget ceiling.", term: "credit" },
+      numberField("engineAnnualUsd", "Engine annual cost (Week 4)", "USD per year", "Compute after any committed-use discount, carried from Week 4.", { min: 1, max: 20000000, step: 10000, term: "commit-discount" }),
+      numberField("storageAnnualUsd", "Storage annual cost (Week 4)", "USD per year", "The line a compute-only budget omits. It grows whether or not anyone queries.", { min: 1, max: 20000000, step: 5000, term: "object-storage" }),
+      numberField("annualBudgetUsd", "Annual budget ceiling", "USD per year", "The Final Artifact constraint. Breaching it fails the rubric, not just the spreadsheet.", { min: 1000, max: 100000000, step: 10000, term: "budget-ceiling" }),
+      numberField("annualGrowthPct", "Annual growth", "percent", "Compounded across the horizon. It decides the final-year figure more than any single price does.", { min: 0, max: 500, step: 1 }),
+      numberField("queriesPerYear", "Queries per year", "queries", "The denominator for cost per query.", { min: 1, max: 200000000, step: 1000, term: "unit-economics" }),
+      numberField("horizonYears", "Horizon", "years", "Three, to match the Final Project Artifact. Change it and watch which figure was doing the deciding.", { min: 1, max: 10, step: 1, term: "three-year-tco" }),
+    ],
+    run: (input) => consolidateArchitecture(input),
+  },
+  {
+    slug: "module-2-cost-model",
+    week: 14,
+    kind: "module",
+    label: "Module 2",
+    covers: [5, 6, 7],
+    title: "Cost Model and Reliability Review",
+    decision: "Consolidate Weeks 5 to 7 into one operating cost model: what the cut removed, what the ingestion decision changed, and what the reliability control you would fund costs per year.",
+    explainer:
+      "The second module deliverable, worth 100 points, due at the end of Week 7. It asks for a working spreadsheet built from published list prices, plus one reliability control you would fund and its annual cost. The consolidation problem here is double counting, and it is the reason this module exists rather than three memos stapled together. Week 5 cut against total platform spend, which already includes an ingestion line. Week 6 priced an ingestion path on its own. Add both and you have charged the same dollar twice, so this tool takes the ingestion decision as a delta against what Week 5 already counted, and shows you that line explicitly. The second thing this module surfaces is that a cut is a one-time step down on a curve that keeps rising, while a control is a new cost that rises with it.",
+    terms: ["consolidation", "run-rate", "finops", "unit-economics", "break-even", "catch-rate", "observability", "budget-ceiling", "three-year-tco", "blended-rate"],
+    presets: [
+      preset("Meridian Health Partners", "Meridian's Week 5 cut against $662,600 of spend, the Week 6 decision to buy, and the Week 7 freshness monitor on the claims table.", {
+        controlName: "Freshness SLA monitor on the claims table",
+        ingestionPath: "Buy",
+        platformAnnualUsd: 662600, annualSavingUsd: 128160, targetReductionPct: 20,
+        ingestionChosenAnnualUsd: 108000, ingestionCountedAnnualUsd: 120000, breakEvenMonths: 35,
+        controlAnnualUsd: 61440, exposureAvoidedUsd: 360000,
+        annualBudgetUsd: 850000, queriesPerYear: 328500, annualGrowthPct: 22, horizonYears: 3,
+      }),
+    ],
+    fields: [
+      { key: "controlName", label: "Reliability control (Week 7)", type: "text", help: "The one control you would fund, named. Not a programme, which cannot be priced on one page.", term: "observability" },
+      numberField("platformAnnualUsd", "Total annual platform spend (Week 5)", "USD per year", "The whole platform bill Week 5 cut against. Wider than Module 1's three architecture layers.", { min: 1, max: 100000000, step: 10000 }),
+      numberField("annualSavingUsd", "Annual saving (Week 5)", "USD per year", "What the cut plan actually removes, summed across categories.", { min: 0, max: 100000000, step: 5000, term: "finops" }),
+      numberField("targetReductionPct", "Target reduction (Week 5)", "percent", "The mandate you were handed. The syllabus sets it at 20 percent.", { min: 1, max: 90, step: 1 }),
+      selectField("ingestionPath", "Ingestion path (Week 6)", INGESTION_PATHS, "The Week 6 decision. It enters this model as a change against what Week 5 already counted.", "break-even"),
+      numberField("ingestionChosenAnnualUsd", "Chosen ingestion path, annual cost (Week 6)", "USD per year", "Vendor price times twelve, or maintenance plus infrastructure times twelve, whichever path you chose.", { min: 0, max: 50000000, step: 1000 }),
+      numberField("ingestionCountedAnnualUsd", "Ingestion already counted in platform spend (Week 5)", "USD per year", "The ingestion category inside Week 5's total. Subtracted so the same dollar is not charged twice.", { min: 0, max: 50000000, step: 1000 }),
+      numberField("breakEvenMonths", "Break-even (Week 6)", "months", "The month cumulative build cost equals cumulative vendor cost. Compare it against your horizon before you read it as a verdict.", { min: 0, max: 600, step: 1, term: "break-even" }),
+      numberField("controlAnnualUsd", "Control steady-state annual cost (Week 7)", "USD per year", "Tooling plus operating effort, after the first year's setup.", { min: 0, max: 50000000, step: 1000 }),
+      numberField("exposureAvoidedUsd", "Exposure avoided (Week 7)", "USD per year", "Annual incident exposure times your estimated catch rate. Your estimate, not a measurement.", { min: 0, max: 500000000, step: 10000, term: "catch-rate" }),
+      numberField("annualBudgetUsd", "Annual budget ceiling", "USD per year", "Unchanged from Module 1. It does not grow.", { min: 1000, max: 100000000, step: 10000, term: "budget-ceiling" }),
+      numberField("queriesPerYear", "Queries per year", "queries", "The denominator for cost per query.", { min: 1, max: 200000000, step: 1000, term: "unit-economics" }),
+      numberField("annualGrowthPct", "Annual growth", "percent", "Applied to the operating run rate across the horizon.", { min: 0, max: 500, step: 1 }),
+      numberField("horizonYears", "Horizon", "years", "Three, to match the Final Project Artifact.", { min: 1, max: 10, step: 1, term: "three-year-tco" }),
+    ],
+    run: (input) => consolidateCostModel(input),
+  },
+  {
+    slug: "module-3-governance",
+    week: 15,
+    kind: "module",
+    label: "Module 3",
+    covers: [8, 9, 10, 11, 12],
+    title: "Governance and Regulatory Exposure Assessment",
+    decision: "Consolidate Weeks 8 to 12 into one governance position: an operating model, a US state privacy path, an EU AI Act exposure statement with dates, and an agent access policy, each with its annual cost.",
+    explainer:
+      "The third module deliverable, worth 100 points, due at the end of Week 12. Week 12 carries no memo of its own precisely because its agent access decision belongs here. The finding this consolidation produces is almost always the same one, and it is almost always a surprise: governance is payroll, payroll is large, and the four other lines on this page are rounding against it. A platform team argues about storage tiers that cost thousands while the operating model decision costs millions, and the two conversations happen in different rooms. The second finding is a date. Annex III duties were deferred, not cancelled, and this tool divides your readiness cost by the working weeks actually remaining, which is the arithmetic a deferral invites everyone to skip.",
+    terms: ["consolidation", "run-rate", "blended-rate", "personal-data", "annex-iii", "gpai", "provider-deployer", "rag", "reindex", "static-key", "workload-identity", "blast-radius", "one-time-cost"],
+    presets: [
+      preset("Meridian Health Partners", "Centralized under a heavy audit weight, per-state privacy across four states, deployer with an Annex III use case, and a vended-credential agent denied personal data.", {
+        operatingModel: "Centralized", privacyPath: "State by state", aiActRole: "Deployer",
+        agentAuthMethod: "Short-lived vended credential", agentPersonalDataGrant: "Denied",
+        staffingAnnualUsd: 1140000, privacyBuildUsd: 440000, privacyAnnualUsd: 192000,
+        aiActReadinessUsd: 360000, daysToAnnexIii: 445,
+        ragAnnualUsd: 2746, deletionSlaDays: 45, reindexIntervalDays: 30,
+        agentAnnualUsd: 1470, operationsAnnualUsd: 583880, horizonYears: 3,
+      }),
+    ],
+    fields: [
+      selectField("operatingModel", "Operating model (Week 8)", OPERATING_MODELS, "The Week 8 decision. It sets the staffing line, which sets almost everything else here.", "blended-rate"),
+      numberField("staffingAnnualUsd", "Governance staffing, annual (Week 8)", "USD per year", "Fully loaded headcount cost for the model you chose. Salary, payroll tax, benefits, equipment, overhead.", { min: 1, max: 500000000, step: 10000, term: "blended-rate" }),
+      selectField("privacyPath", "Privacy path (Week 9)", PRIVACY_PATHS, "One internal standard applied everywhere, or a separate programme per state.", "personal-data"),
+      numberField("privacyBuildUsd", "Privacy programme build (Week 9)", "USD", "One-time cost of the path you chose. Lands entirely in year one.", { min: 0, max: 100000000, step: 10000, term: "one-time-cost" }),
+      numberField("privacyAnnualUsd", "Privacy programme, annual (Week 9)", "USD per year", "Ongoing programme cost on that same path.", { min: 0, max: 50000000, step: 5000 }),
+      selectField("aiActRole", "Role under the AI Act (Week 10)", AI_ACT_ROLES, "Provider obligations are far heavier. Most organizations are both, for different systems.", "provider-deployer"),
+      numberField("aiActReadinessUsd", "AI Act readiness cost (Week 10)", "USD", "Readiness hours times a blended rate. You will be asked who supplied the hours.", { min: 0, max: 100000000, step: 10000, term: "annex-iii" }),
+      numberField("daysToAnnexIii", "Days until Annex III applies (Week 10)", "days", "From the Week 10 timeline, measured from the day you ran it. Deferred is not cancelled.", { min: 0, max: 3650, step: 1 }),
+      numberField("ragAnnualUsd", "Retrieval corpus, annual (Week 11)", "USD per year", "Embedding plus vector storage plus answer generation. The answering line usually dominates.", { min: 0, max: 50000000, step: 500, term: "rag" }),
+      numberField("deletionSlaDays", "Deletion request SLA (Week 11)", "days", "What you have promised, statutorily or contractually.", { min: 1, max: 365, step: 1 }),
+      numberField("reindexIntervalDays", "Reindex interval (Week 11)", "days", "How often the index is rebuilt, which bounds how long a deleted record stays retrievable.", { min: 1, max: 365, step: 1, term: "reindex" }),
+      selectField("agentAuthMethod", "Agent authentication method (Week 12)", AUTH_METHODS, "How the agent proves what it is before anything else happens.", "workload-identity"),
+      selectField("agentPersonalDataGrant", "Agent grant over personal data (Week 12)", ["Denied", "Granted"], "Whether the non-human identity may read your most regulated tables.", "static-key"),
+      numberField("agentAnnualUsd", "Agent read spend, annual (Week 12)", "USD per year", "What the agent's reads cost at the same per-TB rate a human pays.", { min: 0, max: 50000000, step: 500, term: "per-tb-scanned" }),
+      numberField("operationsAnnualUsd", "Operating run rate from Module 2", "USD per year", "Carried from Module 2, not recomputed. It is the denominator for every share on this page.", { min: 1, max: 500000000, step: 10000, term: "run-rate" }),
+      numberField("horizonYears", "Horizon", "years", "Three, to match the Final Project Artifact.", { min: 1, max: 10, step: 1, term: "three-year-tco" }),
+    ],
+    run: (input) => consolidateGovernance(input),
+  },
+  {
+    slug: "final-project",
+    week: 16,
+    kind: "final",
+    label: "Final Project",
+    covers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    title: "Final Project Artifact",
+    decision: "Assemble all three modules into one three-year cost of ownership, test it against the budget ceiling that fails the artifact, and commit in writing to the architecture you rejected and the recommendation most likely to be wrong.",
+    explainer:
+      "The Final Project Artifact is worth 300 points and is due Sunday, November 15. You act as the data platform lead for the case organization assigned in Week 1, and you deliver a platform recommendation, a three-year cost model, a governance operating model, and a dated regulatory roadmap. This tool assembles the four recurring streams and the one-time investment your modules produced, grows them across three years, and tests year one against the ceiling. Three of the syllabus constraints are enforced here rather than suggested. The ceiling is tested and a breach is reported as a failure, because the syllabus says exceeding it fails the artifact. The rejected architecture and its reason are required fields, and the reason is checked for being a single clause rather than a paragraph of hedging. The recommendation most likely to be wrong is a required field, with the evidence that would change your mind beside it. None of the three is arithmetic, and that is exactly why they are the ones a model cannot satisfy for you.",
+    terms: ["three-year-tco", "budget-ceiling", "run-rate", "one-time-cost", "rejected-alternative", "disconfirming-evidence", "consolidation", "unit-economics", "bluf", "determinism"],
+    presets: [
+      preset("Meridian Health Partners", "The three Meridian modules assembled: a $2,040,096 run rate, $800,000 of one-time readiness, and a $2,900,000 ceiling that year one clears and year three does not.", {
+        caseOrganization: "Meridian Health Partners",
+        platformAnnualUsd: 534440, ingestionAnnualUsd: 108000, controlAnnualUsd: 61440,
+        governanceAnnualUsd: 1336216, oneTimeInvestmentUsd: 800000,
+        annualBudgetUsd: 2900000, annualGrowthPct: 22, queriesPerYear: 328500, horizonYears: 3,
+        rejectedArchitecture: "Single-node DuckDB on one 512 GiB machine with Parquet on object storage",
+        rejectionReason: "the year-three working set of 616 GiB exceeds the largest single node we are willing to rent",
+        mostLikelyWrong: "The 60 percent catch rate on the freshness monitor. It is my estimate rather than a measurement, and the entire net reliability position rests on it.",
+        disconfirmingEvidence: "Two consecutive quarters in which the monitor catches under 40 percent of freshness incidents logged by the on-call team. At that point the control is repriced or replaced at the March review.",
+      }),
+    ],
+    fields: [
+      { key: "caseOrganization", label: "Case organization", type: "text", help: "The organization assigned in Week 1, carried through every module to the Live Defense.", term: "" },
+      numberField("platformAnnualUsd", "Platform run rate after the cut (Module 2)", "USD per year", "Carried from Module 2, not recomputed. Week 5 total spend minus the Week 5 saving.", { min: 1, max: 500000000, step: 10000, term: "run-rate" }),
+      numberField("ingestionAnnualUsd", "Ingestion, annual (Module 2)", "USD per year", "The Week 6 path you chose, at its full annual cost.", { min: 0, max: 50000000, step: 1000 }),
+      numberField("controlAnnualUsd", "Reliability control, annual (Module 2)", "USD per year", "The Week 7 control you would fund, at steady state.", { min: 0, max: 50000000, step: 1000 }),
+      numberField("governanceAnnualUsd", "Governance, annual (Module 3)", "USD per year", "Staffing, privacy programme, retrieval corpus, and agent reads.", { min: 0, max: 500000000, step: 10000 }),
+      numberField("oneTimeInvestmentUsd", "One-time investment (Modules 1 and 3)", "USD", "Privacy build, AI Act readiness, and any ingestion build. Lands entirely in year one.", { min: 0, max: 500000000, step: 10000, term: "one-time-cost" }),
+      numberField("annualBudgetUsd", "Annual budget ceiling", "USD per year", "Stated before the design, not after it. Exceed it and the artifact fails.", { min: 1000, max: 500000000, step: 10000, term: "budget-ceiling" }),
+      numberField("annualGrowthPct", "Annual growth", "percent", "Applied to every recurring stream. One rate across four streams is a simplification you should name.", { min: 0, max: 500, step: 1 }),
+      numberField("queriesPerYear", "Queries per year", "queries", "The denominator for both cost-per-query figures.", { min: 1, max: 200000000, step: 1000, term: "unit-economics" }),
+      numberField("horizonYears", "Horizon", "years", "Three, as the Final Project Artifact requires.", { min: 1, max: 10, step: 1, term: "three-year-tco" }),
+      { key: "rejectedArchitecture", label: "Architecture considered and rejected", type: "text", help: "Required by the syllabus. An option you actually costed, not a straw man. The close one is the one you will be asked about.", term: "rejected-alternative" },
+      { key: "rejectionReason", label: "Reason for rejection", type: "text", help: "One clause, as the syllabus requires. Checked at 180 characters and one sentence, because a reason that runs to a paragraph is usually a decision not yet made.", term: "rejected-alternative" },
+      { key: "mostLikelyWrong", label: "Recommendation most likely to be wrong", type: "text", help: "Required by the syllabus. Naming it costs nothing and is the strongest evidence the reasoning is yours.", term: "disconfirming-evidence" },
+      { key: "disconfirmingEvidence", label: "Evidence that would change your mind", type: "text", help: "A threshold and a date, not a sentiment. A recommendation with no reversal condition is a bet, not a plan.", term: "disconfirming-evidence" },
+    ],
+    run: (input) => assembleFinalArtifact(input),
+  },
 ]);
 
 /**
@@ -563,9 +784,12 @@ export function findTool(slug) {
  * @returns {Record<string, unknown>[]}
  */
 export function catalogSummary() {
-  return TOOLS.map(({ slug, week, title, decision, explainer, terms, presets, fields }) => ({
+  return TOOLS.map(({ slug, week, kind, label, covers, title, decision, explainer, terms, presets, fields }) => ({
     slug,
     week,
+    kind,
+    label,
+    covers,
     title,
     decision,
     explainer,

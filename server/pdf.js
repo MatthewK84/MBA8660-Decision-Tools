@@ -85,7 +85,7 @@ function buildDocDefinition(log) {
     pageMargins: [48, 48, 48, 48],
     defaultStyle: { font: "Helvetica" },
     content: [
-      { text: `${log.courseCode} Week ${log.week}: ${log.toolTitle}`, fontSize: 15, bold: true },
+      { text: `${log.courseCode} ${log.label}: ${log.toolTitle}`, fontSize: 15, bold: true },
       { text: "Assumption Log", fontSize: 11, margin: [0, 2, 0, 8] },
       { text: `Decision owed: ${log.decision}`, fontSize: 9, italics: true, margin: [0, 0, 0, 10] },
       { text: "Computed", fontSize: 12, bold: true, margin: [0, 6, 0, 4] },

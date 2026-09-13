@@ -170,10 +170,15 @@ export function unmodelled(label, why) {
 /**
  * Assemble one week's specification.
  *
+ * `sheetName` defaults to the week number, which is what the twelve weekly
+ * sheets want. The module deliverables pass their own name, because "Module 1"
+ * is what a student looks for in the tab strip and "Week 13" is not.
+ *
  * @param {{
  *   slug: string,
  *   week: number,
  *   title: string,
+ *   sheetName?: string,
  *   inputs: readonly InputCell[],
  *   constants: readonly ConstantCell[],
  *   outputs: readonly OutputCell[],
@@ -186,7 +191,7 @@ export function spec(parts) {
     slug: parts.slug,
     week: parts.week,
     title: parts.title,
-    sheetName: `Week ${parts.week}`,
+    sheetName: parts.sheetName ?? `Week ${parts.week}`,
     inputs: parts.inputs,
     constants: parts.constants,
     outputs: parts.outputs,

@@ -12,13 +12,40 @@ import VisualPanel from "./components/VisualPanel.jsx";
 import { useToolSession } from "./useToolSession.js";
 
 /**
- * The masthead and week picker.
+ * One group of options in the picker.
+ *
+ * @param {{ label: string, tools: Record<string, unknown>[] }} props
+ * @returns {JSX.Element | null}
+ */
+function PickerGroup({ label, tools }) {
+  if (tools.length === 0) {
+    return null;
+  }
+  return (
+    <optgroup label={label}>
+      {tools.map((tool) => (
+        <option key={String(tool.slug)} value={String(tool.slug)}>
+          {`${String(tool.label)}: ${String(tool.title)}`}
+        </option>
+      ))}
+    </optgroup>
+  );
+}
+
+/**
+ * The masthead and tool picker.
+ *
+ * Sixteen entries is too many for one flat list, so the weekly tools and the
+ * graded deliverables are separated. A student looking for Module 2 should not
+ * have to know it sits after Week 12.
  *
  * @param {{ session: Record<string, unknown> }} props
  * @returns {JSX.Element}
  */
 function Masthead({ session }) {
   const tools = Array.isArray(session.tools) ? session.tools : [];
+  const weekly = tools.filter((tool) => tool.kind === "week");
+  const deliverables = tools.filter((tool) => tool.kind !== "week");
   const active = session.active;
   return (
     <header>
@@ -29,17 +56,14 @@ function Masthead({ session }) {
         assumption log and attach it to your Canvas submission.
       </p>
       <label className="field" htmlFor="tool-picker">
-        <span className="field-label">Week</span>
+        <span className="field-label">Week or deliverable</span>
         <select
           id="tool-picker"
           value={String(session.slug)}
           onChange={(event) => session.selectTool(event.target.value)}
         >
-          {tools.map((tool) => (
-            <option key={String(tool.slug)} value={String(tool.slug)}>
-              {`Week ${String(tool.week)}: ${String(tool.title)}`}
-            </option>
-          ))}
+          <PickerGroup label="Weekly decision tools" tools={weekly} />
+          <PickerGroup label="Graded deliverables" tools={deliverables} />
         </select>
       </label>
       {active === undefined ? null : <p className="decision">{String(active.decision)}</p>}
